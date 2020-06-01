@@ -3,20 +3,20 @@
 - [ ] Testing Complete
 - [ ] Quality ORT App Documentation Updated (your name is in the Validator square for this feature)
 
-  When this is complete, you should approve the PR via github.
+When this is complete, you should approve the PR via github.
 
-  # For the Reviewee
+# For the Reviewee
 
-  <Reminder PR Title should be JIRA_NUMBER and Useful Description>
+<Reminder PR Title should be JIRA_NUMBER and Useful Description>
 
-  ## Summary
-  Description of changes.
+## Summary
+Description of changes.
 
-  #### Release Note
-  <Concise sentence describing change>Required.
+#### Release Note
+<Concise sentence describing change>Required.
 
-  #### Breaking Changes
-  <Description for Techops of how to handle changes, migrations, updates>None.
+#### Breaking Changes
+<Description for Techops of how to handle changes, migrations, updates>None.
 
 ## Quality Assurance
 
