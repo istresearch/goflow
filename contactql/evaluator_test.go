@@ -22,6 +22,8 @@ func (t TestQueryable) QueryProperty(env envs.Environment, key string, propType 
 func TestEvaluateQuery(t *testing.T) {
 	env := envs.NewBuilder().Build()
 	var testObj = TestQueryable{
+		"uuid":     []interface{}{"c7d9bece-6bbd-4b3b-8a86-eb0cf1ac9d05"},
+		"id":       []interface{}{"12345"},
 		"name":     []interface{}{"Bob Smithwick"},
 		"tel":      []interface{}{"+59313145145"},
 		"twitter":  []interface{}{"bob_smith"},
@@ -40,6 +42,14 @@ func TestEvaluateQuery(t *testing.T) {
 		query  string
 		result bool
 	}{
+		// UUID condition
+		{`uuid = "C7D9BECE-6bbd-4b3b-8a86-eb0cf1ac9d05"`, true},
+		{`uuid = "xyz"`, false},
+
+		// ID condition
+		{`id = 12345`, true},
+		{`id = 76543`, false},
+
 		// name condition
 		{`name = "BOB smithwick"`, true},
 		{`name = "Bob"`, false},
@@ -156,9 +166,9 @@ func TestEvaluationErrors(t *testing.T) {
 		errMsg string
 	}{
 		{`age = 3X`, "can't convert '3X' to a number"},
-		{`dob = 32`, "string '32' couldn't be parsed as a date"},
-		{`dob = 32 AND name = Bob`, "string '32' couldn't be parsed as a date"},
-		{`name = Bob OR dob = 32`, "string '32' couldn't be parsed as a date"},
+		{`dob = 32`, "can't convert '32' to a date"},
+		{`dob = 32 AND name = Bob`, "can't convert '32' to a date"},
+		{`name = Bob OR dob = 32`, "can't convert '32' to a date"},
 	}
 
 	resolver := contactql.NewMockResolver(map[string]assets.Field{

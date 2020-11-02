@@ -23,6 +23,7 @@ func (e *engine) NewSession(sa flows.SessionAssets, trigger flows.Trigger) (flow
 		assets:     sa,
 		trigger:    trigger,
 		status:     flows.SessionStatusActive,
+		batchStart: trigger.Batch(),
 		runsByUUID: make(map[flows.RunUUID]flows.FlowRun),
 	}
 
@@ -77,6 +78,12 @@ func (b *Builder) WithWebhookServiceFactory(f WebhookServiceFactory) *Builder {
 // WithClassificationServiceFactory sets the NLU service factory
 func (b *Builder) WithClassificationServiceFactory(f ClassificationServiceFactory) *Builder {
 	b.eng.services.classification = f
+	return b
+}
+
+// WithTicketServiceFactory sets the ticket service factory
+func (b *Builder) WithTicketServiceFactory(f TicketServiceFactory) *Builder {
+	b.eng.services.ticket = f
 	return b
 }
 

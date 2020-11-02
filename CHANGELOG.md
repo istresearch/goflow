@@ -1,3 +1,128 @@
+v0.94.2
+----------
+ * Use jsonx.Marshal consistently
+
+v0.94.1
+----------
+ * Add IsQueryError util
+
+v0.94.0
+----------
+ * Move all location stuff from utils to envs
+ * Simplify resolving locations from environments
+ * Refactor field modifiers to take raw values and location parsing to not require a session
+
+v0.93.1
+----------
+ * Fix clearing all URNs
+
+v0.93.0
+----------
+ * Add urns modifier to replace all the URNs on a contact
+
+v0.92.0
+----------
+ * Move elastic functionality from mailroom
+
+v0.91.1
+----------
+ * Fix clearing of fields
+
+v0.91.0
+----------
+ * Move generic PO stuff into utils/i18n
+
+v0.90.0
+----------
+ * Allow querying contacts by UUID
+ * Move i18n package under flows to avoid confusion with locales package
+ * Add completion to localized documentation
+
+v0.89.0
+----------
+ * Tweak change language functionality to allow missing translations
+ * Add country to template translations and use when resolving templates
+
+v0.88.0
+----------
+ * Add support for localized documentation
+
+v0.87.0
+----------
+ * Disallow opening tickets, starting sessions and sending broadcasts when doing batch start
+ * Add ability to change the language of a flow
+ * Update our format_datetime docs to properly show range of 01-24
+ * Fix evaluation of legacy vars in other-contacts actions
+
+v0.86.2
+----------
+ * Fix spelling of Readact
+
+v0.86.1
+----------
+ * Do redaction of access keys from HTTP logs
+
+v0.86.0
+----------
+ * Add open_ticket actions and ticket_opened events
+
+v0.85.0
+----------
+ * Add new service_called event to be used for classifiers and ticketers etc
+
+v0.84.0
+----------
+ * Replace contact blocked and stopped fields with status field
+ * Rename blocked and stopped modifiers to contact status modifier
+
+v0.83.1
+----------
+ * Fix anywhere we truncate strings to do it by rune
+
+v0.83.0
+----------
+ * Add blocked and stopped modifiers and events
+ * Add blocked and stopped fields to contact
+
+v0.82.0
+----------
+ * Fix default to understand objects with defaults
+
+v0.81.0
+----------
+ * Rework httpx to replace NewTrace with NewRequest+DoTrace
+ * Separate out the header part of response traces from the body which won't always be valid UTF-8
+
+v0.80.0
+----------
+ * ivr_created events should include language of translated text
+
+v0.79.1
+----------
+ * Include 3-char language code as extra header in PO files
+
+v0.79.0
+----------
+ * Add custom Source-Flows header to exported PO files
+ * Make router categories inspectable
+ * Importing of translations into flows
+
+v0.78.1
+----------
+ * Add decode_html Excellent function
+ * Start of i18n work
+ * Prevent XText.Slice from panicking
+
+v0.78.0
+----------
+ * Add support for extracting the "base" translation of a flow
+ * Allow queries on URNs to check if they are set or not
+ * Add Language.ToISO639_2()
+ * Make flowrunner easier to use by defaulting to first flow in the assets
+ * Default to current version in flowmigrate cmd
+ * Rework group asset loading so that parsing is not deferred
+ * Override environment country if contact has preferred channel with country
+
 v0.77.4
 ----------
  * Fix loading flow assets that are new spec but also have metadata section

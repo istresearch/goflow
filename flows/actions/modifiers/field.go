@@ -5,6 +5,7 @@ import (
 
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
+	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
@@ -23,11 +24,11 @@ type FieldModifier struct {
 	baseModifier
 
 	field *flows.Field
-	value *flows.Value
+	value string
 }
 
 // NewField creates a new field modifier
-func NewField(field *flows.Field, value *flows.Value) *FieldModifier {
+func NewField(field *flows.Field, value string) *FieldModifier {
 	return &FieldModifier{
 		baseModifier: newBaseModifier(TypeField),
 		field:        field,
@@ -36,19 +37,25 @@ func NewField(field *flows.Field, value *flows.Value) *FieldModifier {
 }
 
 // Apply applies this modification to the given contact
-func (m *FieldModifier) Apply(env envs.Environment, assets flows.SessionAssets, contact *flows.Contact, log flows.EventCallback) {
+func (m *FieldModifier) Apply(env envs.Environment, sa flows.SessionAssets, contact *flows.Contact, log flows.EventCallback) {
 	oldValue := contact.Fields().Get(m.field)
 
-	if !m.value.Equals(oldValue) {
-		// truncate text value if necessary
-		if m.value != nil && m.value.Text.Length() > env.MaxValueLength() {
-			m.value.Text = m.value.Text.Slice(0, env.MaxValueLength())
-		}
+	newValue := contact.Fields().Parse(env, sa.Fields(), m.field, m.value)
 
-		contact.Fields().Set(m.field, m.value)
-		log(events.NewContactFieldChanged(m.field, m.value))
-		m.reevaluateDynamicGroups(env, assets, contact, log)
+	// truncate text value if necessary
+	if newValue != nil {
+		newValue.Text = types.NewXText(utils.Truncate(newValue.Text.Native(), env.MaxValueLength()))
 	}
+
+	if !newValue.Equals(oldValue) {
+		contact.Fields().Set(m.field, newValue)
+		log(events.NewContactFieldChanged(m.field, newValue))
+		m.reevaluateGroups(env, sa, contact, log)
+	}
+}
+
+func (m *FieldModifier) Value() string {
+	return m.value
 }
 
 var _ flows.Modifier = (*FieldModifier)(nil)
@@ -60,7 +67,7 @@ var _ flows.Modifier = (*FieldModifier)(nil)
 type fieldModifierEnvelope struct {
 	utils.TypedEnvelope
 	Field *assets.FieldReference `json:"field" validate:"required"`
-	Value *flows.Value           `json:"value"`
+	Value json.RawMessage        `json:"value"`
 }
 
 func readFieldModifier(assets flows.SessionAssets, data json.RawMessage, missing assets.MissingCallback) (flows.Modifier, error) {
@@ -77,13 +84,30 @@ func readFieldModifier(assets flows.SessionAssets, data json.RawMessage, missing
 			return nil, ErrNoModifier // nothing left to modify without the field
 		}
 	}
-	return NewField(field, e.Value), nil
+
+	value := ""
+
+	// try unmarshaling value as string
+	json.Unmarshal(e.Value, &value)
+
+	// then try as a value object (how this modifier used to be work)
+	valueAsObj := &flows.Value{}
+	if json.Unmarshal(e.Value, valueAsObj) == nil {
+		value = valueAsObj.Text.Native()
+	}
+
+	return NewField(field, value), nil
 }
 
 func (m *FieldModifier) MarshalJSON() ([]byte, error) {
+	value, err := jsonx.Marshal(m.value)
+	if err != nil {
+		return nil, err
+	}
+
 	return jsonx.Marshal(&fieldModifierEnvelope{
 		TypedEnvelope: utils.TypedEnvelope{Type: m.Type()},
 		Field:         m.field.Reference(),
-		Value:         m.value,
+		Value:         value,
 	})
 }
