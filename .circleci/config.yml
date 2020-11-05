@@ -20,6 +20,9 @@ jobs:
       - run:
           name: Run unit tests
 
+          environment:
+            GOFLAGS: -p=2
+
           # store the results of our tests in the $TEST_RESULTS directory
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
