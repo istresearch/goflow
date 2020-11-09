@@ -1,0 +1,41 @@
+version: 2
+jobs:
+  tests:
+    docker:
+      - image: circleci/golang:1.13
+        auth:
+          username: $DOCKER_USER
+          password: $DOCKER_PASS
+
+    parallelism: 1
+
+    environment: # environment variables for the build itself
+      TEST_RESULTS: /tmp/test-results # path to where test results will be saved
+
+    steps: # steps that comprise the `build` job
+      - checkout # check out source code to working directory
+      - run: mkdir -p $TEST_RESULTS # create the test results directory
+      - run: sudo apt -y update && sudo apt -y install pandoc gettext
+
+      - run:
+          name: Run unit tests
+
+          environment:
+            GOFLAGS: -p=2
+
+          # store the results of our tests in the $TEST_RESULTS directory
+          command: |
+            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+            gotestsum --junitfile ${TEST_RESULTS}/gotestsum-report.xml -- $PACKAGE_NAMES
+
+      - store_artifacts: # upload test summary for display in Artifacts
+          path: /tmp/test-results
+          destination: raw-test-output
+
+      - store_test_results: # upload test results for display in Test Summary
+          path: /tmp/test-results
+workflows:
+  version: 2
+  run-tests:
+    jobs:
+      - tests

@@ -7,6 +7,7 @@ import (
 
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/assets/static/types"
+	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/utils"
 
 	"github.com/pkg/errors"
@@ -15,16 +16,17 @@ import (
 // StaticSource is an asset source which loads assets from a static JSON file
 type StaticSource struct {
 	s struct {
-		Channels    []*types.Channel           `json:"channels" validate:"omitempty,dive"`
-		Classifiers []*types.Classifier        `json:"classifiers" validate:"omitempty,dive"`
-		Fields      []*types.Field             `json:"fields" validate:"omitempty,dive"`
-		Flows       []*types.Flow              `json:"flows" validate:"omitempty,dive"`
-		Globals     []*types.Global            `json:"globals" validate:"omitempty,dive"`
-		Groups      []*types.Group             `json:"groups" validate:"omitempty,dive"`
-		Labels      []*types.Label             `json:"labels" validate:"omitempty,dive"`
-		Locations   []*utils.LocationHierarchy `json:"locations"`
-		Resthooks   []*types.Resthook          `json:"resthooks" validate:"omitempty,dive"`
-		Templates   []*types.Template          `json:"templates" validate:"omitempty,dive"`
+		Channels    []*types.Channel          `json:"channels" validate:"omitempty,dive"`
+		Classifiers []*types.Classifier       `json:"classifiers" validate:"omitempty,dive"`
+		Fields      []*types.Field            `json:"fields" validate:"omitempty,dive"`
+		Flows       []*types.Flow             `json:"flows" validate:"omitempty,dive"`
+		Globals     []*types.Global           `json:"globals" validate:"omitempty,dive"`
+		Groups      []*types.Group            `json:"groups" validate:"omitempty,dive"`
+		Labels      []*types.Label            `json:"labels" validate:"omitempty,dive"`
+		Locations   []*envs.LocationHierarchy `json:"locations"`
+		Resthooks   []*types.Resthook         `json:"resthooks" validate:"omitempty,dive"`
+		Templates   []*types.Template         `json:"templates" validate:"omitempty,dive"`
+		Ticketers   []*types.Ticketer         `json:"ticketers" validate:"omitempty,dive"`
 	}
 }
 
@@ -140,6 +142,15 @@ func (s *StaticSource) Templates() ([]assets.Template, error) {
 	set := make([]assets.Template, len(s.s.Templates))
 	for i := range s.s.Templates {
 		set[i] = s.s.Templates[i]
+	}
+	return set, nil
+}
+
+// Ticketers returns all ticketer assets
+func (s *StaticSource) Ticketers() ([]assets.Ticketer, error) {
+	set := make([]assets.Ticketer, len(s.s.Ticketers))
+	for i := range s.s.Ticketers {
+		set[i] = s.s.Ticketers[i]
 	}
 	return set, nil
 }

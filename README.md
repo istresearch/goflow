@@ -2,7 +2,7 @@
 
 ## Specification
 
-See https://nyaruka.github.io/goflow/ for the complete specification docs.
+See [here](https://nyaruka.github.io/goflow/en_US/) for the complete specification docs.
 
 ## Basic Usage
 
@@ -14,11 +14,11 @@ import (
     "github.com/nyaruka/goflow/utils"
 )
 
-source, _ := static.LoadSource("myassets.json")
-assets, _ := engine.NewSessionAssets(source, nil)
-contact := flows.NewContact(assets, ...)
 env := envs.NewBuilder().Build()
-trigger := triggers.NewManual(env, contact, flow.Reference(), nil, nil, time.Now())
+source, _ := static.LoadSource("myassets.json")
+assets, _ := engine.NewSessionAssets(env, source, nil)
+contact := flows.NewContact(assets, ...)
+trigger := triggers.NewManual(env, contact, flow.Reference(), nil, false, nil, time.Now())
 eng := engine.NewBuilder().Build()
 session, sprint, err := eng.NewSession(assets, trigger)
 ```

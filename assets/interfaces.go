@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/nyaruka/goflow/envs"
-	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/goflow/utils/uuids"
 )
 
@@ -206,8 +205,8 @@ type Label interface {
 //
 // @asset location
 type LocationHierarchy interface {
-	FindByPath(path utils.LocationPath) *utils.Location
-	FindByName(name string, level utils.LocationLevel, parent *utils.Location) []*utils.Location
+	FindByPath(path envs.LocationPath) *envs.Location
+	FindByName(name string, level envs.LocationLevel, parent *envs.Location) []*envs.Location
 }
 
 // Resthook is a set of URLs which are subscribed to the named event.
@@ -225,6 +224,7 @@ type Resthook interface {
 	Subscribers() []string
 }
 
+// TemplateUUID is the UUID of a template
 type TemplateUUID uuids.UUID
 
 // Template is a message template, currently only used by WhatsApp channels
@@ -263,8 +263,27 @@ type Template interface {
 type TemplateTranslation interface {
 	Content() string
 	Language() envs.Language
+	Country() envs.Country
 	VariableCount() int
 	Channel() ChannelReference
+}
+
+// TicketerUUID is the UUID of a ticketer
+type TicketerUUID uuids.UUID
+
+// Ticketer is a system which can open or close tickets
+//
+//   {
+//     "uuid": "37657cf7-5eab-4286-9cb0-bbf270587bad",
+//     "name": "Support Tickets",
+//     "type": "mailgun"
+//   }
+//
+// @asset ticketer
+type Ticketer interface {
+	UUID() TicketerUUID
+	Name() string
+	Type() string
 }
 
 // Source is a source of assets
@@ -279,4 +298,5 @@ type Source interface {
 	Locations() ([]LocationHierarchy, error)
 	Resthooks() ([]Resthook, error)
 	Templates() ([]Template, error)
+	Ticketers() ([]Ticketer, error)
 }

@@ -16,8 +16,8 @@ func TestAccessConfig(t *testing.T) {
 	access := httpx.NewAccessConfig(30*time.Second, []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")})
 
 	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]httpx.MockResponse{
-		"https://nyaruka.com": []httpx.MockResponse{
-			httpx.NewMockResponse(200, nil, ``, 1),
+		"https://nyaruka.com": {
+			httpx.NewMockResponse(200, nil, ``),
 		},
 	}))
 
@@ -27,7 +27,6 @@ func TestAccessConfig(t *testing.T) {
 	}{
 		{"https://nyaruka.com", ""},
 
-		{"https://wqqwetqfeqgqgq.com", "lookup wqqwetqfeqgqgq.com: no such host"},
 		{"https://localhost/path", "request to localhost denied"},
 		{"https://LOCALHOST:80", "request to LOCALHOST denied"},
 		{"http://foo.localtest.me", "request to foo.localtest.me denied"},

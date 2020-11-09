@@ -91,8 +91,8 @@ type SessionAssets struct {
 }
 
 // NewSessionAssets creates a new session assets
-func NewSessionAssets(source *AssetsSource) (*SessionAssets, error) {
-	s, err := engine.NewSessionAssets(source.target, &migrations.Config{BaseMediaURL: ""})
+func NewSessionAssets(environment *Environment, source *AssetsSource) (*SessionAssets, error) {
+	s, err := engine.NewSessionAssets(environment.target, source.target, &migrations.Config{BaseMediaURL: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ type Trigger struct {
 func NewManualTrigger(environment *Environment, contact *Contact, flow *FlowReference) *Trigger {
 	flowRef := assets.NewFlowReference(assets.FlowUUID(flow.uuid), flow.name)
 	return &Trigger{
-		target: triggers.NewManual(environment.target, flowRef, contact.target, nil),
+		target: triggers.NewManual(environment.target, flowRef, contact.target, false, nil),
 	}
 }
 
