@@ -52,6 +52,13 @@ var sessionAssets = `{
             "intents": ["book_flight", "book_hotel"]
         }
     ],
+    "ticketers": [
+        {
+            "uuid": "19dc6346-9623-4fe4-be80-538d493ecdf5",
+            "name": "Support Tickets",
+            "type": "mailgun"
+        }
+    ],
     "flows": [
         {
             "uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7",
@@ -519,6 +526,8 @@ func CreateTestVoiceSession(testServerURL string) (flows.Session, []flows.Event,
 
 // CreateSessionAssets creates assets from given JSON
 func CreateSessionAssets(assetsJSON json.RawMessage, testServerURL string) (flows.SessionAssets, error) {
+	env := envs.NewBuilder().Build()
+
 	// different tests different ports for the test HTTP server
 	if testServerURL != "" {
 		assetsJSON = json.RawMessage(strings.Replace(string(assetsJSON), "http://localhost", testServerURL, -1))
@@ -531,7 +540,7 @@ func CreateSessionAssets(assetsJSON json.RawMessage, testServerURL string) (flow
 	}
 
 	// create our engine session
-	sa, err := engine.NewSessionAssets(source, nil)
+	sa, err := engine.NewSessionAssets(env, source, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating test session assets")
 	}
@@ -553,7 +562,7 @@ func CreateSession(assetsJSON json.RawMessage, flowUUID assets.FlowUUID) (flows.
 
 	env := envs.NewBuilder().Build()
 	contact := flows.NewEmptyContact(sa, "Bob", envs.NilLanguage, nil)
-	trigger := triggers.NewManual(env, flow.Reference(), contact, nil)
+	trigger := triggers.NewManual(env, flow.Reference(), contact, false, nil)
 	eng := engine.NewBuilder().Build()
 
 	return eng.NewSession(sa, trigger)

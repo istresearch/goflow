@@ -37,7 +37,6 @@ func RegisterXTest(name string, function types.XFunction) {
 // XTESTS is our mapping of the excellent test names to their actual functions
 var XTESTS = map[string]types.XFunction{
 	"has_error": functions.OneArgFunction(HasError),
-	"has_value": functions.OneArgFunction(HasValue),
 
 	"has_only_text":   functions.TwoTextFunction(HasOnlyText),
 	"has_phrase":      functions.TwoTextFunction(HasPhrase),
@@ -73,6 +72,9 @@ var XTESTS = map[string]types.XFunction{
 	"has_state":    functions.OneTextFunction(HasState),
 	"has_district": functions.MinAndMaxArgsCheck(1, 2, HasDistrict),
 	"has_ward":     HasWard,
+
+	// for backward compatibility
+	"has_value": functions.OneTextFunction(HasText),
 }
 
 //------------------------------------------------------------------------------------------
@@ -142,28 +144,6 @@ func HasError(env envs.Environment, value types.XValue) types.XValue {
 	}
 
 	return FalseResult
-}
-
-// HasValue returns whether `value` is non-nil and not an error
-//
-// Note that `contact.fields` and `run.results` are considered dynamic, so it is not an error
-// to try to retrieve a value from fields or results which don't exist, rather these return an empty
-// value.
-//
-//   @(has_value("hello")) -> true
-//   @(has_value("hello").match) -> hello
-//   @(has_value(datetime("foo"))) -> false
-//   @(has_value(not.existing)) -> false
-//   @(has_value(contact.fields.unset)) -> false
-//   @(has_value("")) -> false
-//
-// @test has_value(value)
-func HasValue(env envs.Environment, value types.XValue) types.XValue {
-	if types.IsEmpty(value) || types.IsXError(value) {
-		return FalseResult
-	}
-
-	return NewTrueResult(value)
 }
 
 // HasGroup returns whether the `contact` is part of group with the passed in UUID
@@ -619,12 +599,12 @@ func HasTopIntent(env envs.Environment, result *types.XObject, name types.XText,
 //
 // @test has_state(text)
 func HasState(env envs.Environment, text types.XText) types.XValue {
-	runEnv, _ := env.(flows.RunEnvironment)
-
-	states, err := runEnv.FindLocationsFuzzy(text.Native(), flows.LocationLevelState, nil)
-	if err != nil {
-		return types.NewXError(err)
+	locations := env.LocationResolver()
+	if locations == nil {
+		return types.NewXErrorf("can't find locations in environment which is not location enabled")
 	}
+
+	states := locations.FindLocationsFuzzy(text.Native(), flows.LocationLevelState, nil)
 	if len(states) > 0 {
 		return NewTrueResult(types.NewXText(string(states[0].Path())))
 	}
@@ -641,7 +621,10 @@ func HasState(env envs.Environment, text types.XText) types.XValue {
 //
 // @test has_district(text, state)
 func HasDistrict(env envs.Environment, args ...types.XValue) types.XValue {
-	runEnv, _ := env.(flows.RunEnvironment)
+	locations := env.LocationResolver()
+	if locations == nil {
+		return types.NewXErrorf("can't find locations in environment which is not location enabled")
+	}
 
 	var text, stateText types.XText
 	var xerr types.XError
@@ -656,15 +639,9 @@ func HasDistrict(env envs.Environment, args ...types.XValue) types.XValue {
 		}
 	}
 
-	states, err := runEnv.FindLocationsFuzzy(stateText.Native(), flows.LocationLevelState, nil)
-	if err != nil {
-		return types.NewXError(err)
-	}
+	states := locations.FindLocationsFuzzy(stateText.Native(), flows.LocationLevelState, nil)
 	if len(states) > 0 {
-		districts, err := runEnv.FindLocationsFuzzy(text.Native(), flows.LocationLevelDistrict, states[0])
-		if err != nil {
-			return types.NewXError(err)
-		}
+		districts := locations.FindLocationsFuzzy(text.Native(), flows.LocationLevelDistrict, states[0])
 		if len(districts) > 0 {
 			return NewTrueResult(types.NewXText(string(districts[0].Path())))
 		}
@@ -672,10 +649,7 @@ func HasDistrict(env envs.Environment, args ...types.XValue) types.XValue {
 
 	// try without a parent state - it's ok as long as we get a single match
 	if stateText.Empty() {
-		districts, err := runEnv.FindLocationsFuzzy(text.Native(), flows.LocationLevelDistrict, nil)
-		if err != nil {
-			return types.NewXError(err)
-		}
+		districts := locations.FindLocationsFuzzy(text.Native(), flows.LocationLevelDistrict, nil)
 		if len(districts) == 1 {
 			return NewTrueResult(types.NewXText(string(districts[0].Path())))
 		}
@@ -700,7 +674,10 @@ func HasWard(env envs.Environment, args ...types.XValue) types.XValue {
 		return types.NewXErrorf("takes one or three arguments, got %d", len(args))
 	}
 
-	runEnv, _ := env.(flows.RunEnvironment)
+	locations := env.LocationResolver()
+	if locations == nil {
+		return types.NewXErrorf("can't find locations in environment which is not location enabled")
+	}
 
 	var text, districtText, stateText types.XText
 	var xerr types.XError
@@ -718,20 +695,11 @@ func HasWard(env envs.Environment, args ...types.XValue) types.XValue {
 		}
 	}
 
-	states, err := runEnv.FindLocationsFuzzy(stateText.Native(), flows.LocationLevelState, nil)
-	if err != nil {
-		return types.NewXError(err)
-	}
+	states := locations.FindLocationsFuzzy(stateText.Native(), flows.LocationLevelState, nil)
 	if len(states) > 0 {
-		districts, err := runEnv.FindLocationsFuzzy(districtText.Native(), flows.LocationLevelDistrict, states[0])
-		if err != nil {
-			return types.NewXError(err)
-		}
+		districts := locations.FindLocationsFuzzy(districtText.Native(), flows.LocationLevelDistrict, states[0])
 		if len(districts) > 0 {
-			wards, err := runEnv.FindLocationsFuzzy(text.Native(), flows.LocationLevelWard, districts[0])
-			if err != nil {
-				return types.NewXError(err)
-			}
+			wards := locations.FindLocationsFuzzy(text.Native(), flows.LocationLevelWard, districts[0])
 			if len(wards) > 0 {
 				return NewTrueResult(types.NewXText(string(wards[0].Path())))
 			}
@@ -740,10 +708,7 @@ func HasWard(env envs.Environment, args ...types.XValue) types.XValue {
 
 	// try without a parent district - it's ok as long as we get a single match
 	if districtText.Empty() {
-		wards, err := runEnv.FindLocationsFuzzy(text.Native(), flows.LocationLevelWard, nil)
-		if err != nil {
-			return types.NewXError(err)
-		}
+		wards := locations.FindLocationsFuzzy(text.Native(), flows.LocationLevelWard, nil)
 		if len(wards) == 1 {
 			return NewTrueResult(types.NewXText(string(wards[0].Path())))
 		}

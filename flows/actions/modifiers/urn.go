@@ -27,7 +27,8 @@ const (
 	URNRemove URNModification = "remove"
 )
 
-// URNModifier modifies a URN on a contact
+// URNModifier modifies a URN on a contact. This has been replaced by URNsModifier but is kept here for now
+// to support processing of old Surveyor submissions.
 type URNModifier struct {
 	baseModifier
 
@@ -57,7 +58,7 @@ func (m *URNModifier) Apply(env envs.Environment, assets flows.SessionAssets, co
 
 	if modified {
 		log(events.NewContactURNsChanged(contact.URNs().RawURNs()))
-		m.reevaluateDynamicGroups(env, assets, contact, log)
+		m.reevaluateGroups(env, assets, contact, log)
 	}
 }
 

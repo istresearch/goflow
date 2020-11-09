@@ -1,6 +1,7 @@
 package httpx_test
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -16,32 +17,15 @@ func TestMockRequestor(t *testing.T) {
 
 	// can create requestor with constructor
 	requestor1 := httpx.NewMockRequestor(map[string][]httpx.MockResponse{
-		"http://google.com": []httpx.MockResponse{
-			httpx.NewMockResponse(200, nil, "this is google", 0),
-			httpx.NewMockResponse(201, nil, "this is google again", 0),
+		"http://google.com": {
+			httpx.NewMockResponse(200, nil, "this is google"),
+			httpx.NewMockResponse(201, nil, "this is google again"),
 		},
-		"http://yahoo.com": []httpx.MockResponse{
-			httpx.NewMockResponse(202, nil, "this is yahoo", 0),
+		"http://yahoo.com": {
+			httpx.NewMockResponse(202, nil, "this is yahoo"),
 			httpx.MockConnectionError,
 		},
 	})
-
-	// can also read requestor from JSON
-	asJSON := []byte(`{
-		"http://google.com": [
-			{"status": 200, "body": "this is google"},
-			{"status": 201, "body": "this is google again"}
-		],
-		"http://yahoo.com": [
-			{"status": 202, "body": "this is yahoo"},
-			{"status": 0, "body": ""}
-		]
-	}`)
-
-	requestor2 := &httpx.MockRequestor{}
-	err := jsonx.Unmarshal(asJSON, requestor2)
-	assert.NoError(t, err)
-	assert.Equal(t, requestor1, requestor2)
 
 	httpx.SetRequestor(requestor1)
 
@@ -79,4 +63,39 @@ func TestMockRequestor(t *testing.T) {
 	// panic if we've run out of mocks for a URL
 	req5, _ := http.NewRequest("GET", "http://google.com", nil)
 	assert.Panics(t, func() { httpx.Do(http.DefaultClient, req5, nil, nil) })
+}
+
+func TestMockRequestorMarshaling(t *testing.T) {
+	// can create requestor with constructor
+	requestor1 := httpx.NewMockRequestor(map[string][]httpx.MockResponse{
+		"http://google.com": {
+			httpx.NewMockResponse(200, nil, "this is google"),
+			httpx.NewMockResponse(201, nil, "this is google again"),
+		},
+		"http://yahoo.com": {
+			httpx.NewMockResponse(202, nil, "this is yahoo"),
+			httpx.MockConnectionError,
+		},
+	})
+
+	asJSON := []byte(`{
+		"http://google.com": [
+			{"status": 200, "body": "this is google"},
+			{"status": 201, "body": "this is google again"}
+		],
+		"http://yahoo.com": [
+			{"status": 202, "body": "this is yahoo"},
+			{"status": 0, "body": ""}
+		]
+	}`)
+
+	// test unmarshaling
+	requestor2 := &httpx.MockRequestor{}
+	err := json.Unmarshal(asJSON, requestor2)
+	assert.NoError(t, err)
+	assert.Equal(t, requestor1, requestor2)
+
+	// test re-marshaling
+	marshaled, err := jsonx.Marshal(requestor2)
+	assert.JSONEq(t, string(asJSON), string(marshaled))
 }

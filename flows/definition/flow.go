@@ -158,6 +158,80 @@ func (f *flow) ExtractTemplates() []string {
 	return templates
 }
 
+// ExtractLocalizables extracts all localizable text
+func (f *flow) ExtractLocalizables() []string {
+	texts := make([]string, 0)
+	include := func(uuid uuids.UUID, property string, ts []string, w func([]string)) {
+		for _, t := range ts {
+			if t != "" {
+				texts = append(texts, t)
+			}
+		}
+	}
+
+	for _, n := range f.nodes {
+		n.EnumerateLocalizables(include)
+	}
+
+	return texts
+}
+
+// ChangeLanguage changes the language of the flow saving the current flow text as a translation and replacing it with
+// the specified translation. It returns an error if there are missing translations.
+func (f *flow) ChangeLanguage(lang envs.Language) (flows.Flow, error) {
+	// make a copy of the flow
+	copy, err := f.copy()
+	if err != nil {
+		return nil, err
+	}
+
+	ll := copy.localization.(localization)
+
+	outTranslation := make(languageTranslation) // current flow text extracted out as a translation
+	inTranslation := ll[lang]                   // translation being imported in as new flow text
+	if inTranslation == nil {
+		inTranslation = languageTranslation{}
+	}
+
+	include := func(uuid uuids.UUID, property string, oldValues []string, w func([]string)) {
+		// save current flow text into a translation
+		if len(oldValues) > 0 {
+			outTranslation.setTextArray(uuid, property, oldValues)
+		}
+
+		newValues := inTranslation.getTextArray(uuid, property)
+
+		// if we have a translation, update flow text in the definition, if not then leave it as is
+		if len(newValues) > 0 {
+			w(newValues)
+		}
+	}
+
+	for _, n := range copy.nodes {
+		n.EnumerateLocalizables(include)
+	}
+
+	ll[copy.language] = outTranslation
+	delete(ll, lang)
+	copy.language = lang
+
+	return copy, nil
+}
+
+// makes a copy of this flow which this differs from cloning as UUIDs are preserved
+func (f *flow) copy() (*flow, error) {
+	// by marshaling and unmarshaling...
+	marshaled, err := jsonx.Marshal(f)
+	if err != nil {
+		return nil, err
+	}
+	cp, err := ReadFlow(marshaled, nil)
+	if err != nil {
+		return nil, err
+	}
+	return cp.(*flow), nil
+}
+
 // extracts all templates, asset dependencies and parent result references
 func (f *flow) extract() ([]flows.ExtractedTemplate, []flows.ExtractedReference, []string) {
 	templates := make([]flows.ExtractedTemplate, 0)
