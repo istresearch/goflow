@@ -48,7 +48,7 @@ type SendMsgAction struct {
 	AllURNs    bool           `json:"all_urns,omitempty"`
 	Templating *Templating    `json:"templating,omitempty" validate:"omitempty,dive"`
 	Topic      flows.MsgTopic `json:"topic,omitempty" validate:"omitempty,msg_topic"`
-	Labels []*assets.LabelReference `json:"labels" validate:"omitempty,dive"`
+	Labels []*assets.LabelReference `json:"labels,omitempty" validate:"omitempty,dive"`
 }
 
 // Templating represents the templating that should be used if possible
