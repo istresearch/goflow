@@ -48,6 +48,7 @@ type SendMsgAction struct {
 	AllURNs    bool           `json:"all_urns,omitempty"`
 	Templating *Templating    `json:"templating,omitempty" validate:"omitempty,dive"`
 	Topic      flows.MsgTopic `json:"topic,omitempty" validate:"omitempty,msg_topic"`
+	Labels []*assets.LabelReference `json:"labels,omitempty" validate:"omitempty,dive"`
 }
 
 // Templating represents the templating that should be used if possible
@@ -123,6 +124,7 @@ func (a *SendMsgAction) Execute(run flows.FlowRun, step flows.Step, logModifier 
 		}
 
 		msg := flows.NewMsgOut(dest.URN.URN(), channelRef, evaluatedText, evaluatedAttachments, evaluatedQuickReplies, templating, a.Topic)
+		msg.Labels = a.Labels
 		logEvent(events.NewMsgCreated(msg))
 	}
 

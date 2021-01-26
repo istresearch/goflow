@@ -51,6 +51,7 @@ type MsgOut struct {
 	Templating_   *MsgTemplating `json:"templating,omitempty"`
 	Topic_        MsgTopic       `json:"topic,omitempty"`
 	TextLanguage  envs.Language  `json:"text_language,omitempty"`
+	Labels []*assets.LabelReference `json:"labels,omitempty"`
 }
 
 // NewMsgIn creates a new incoming message
