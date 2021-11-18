@@ -35,3 +35,4 @@ fabfile.*
 fabconfig.*
 
 antlr/.antlr
+.idea
