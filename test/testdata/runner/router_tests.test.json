@@ -94,7 +94,6 @@
                         "eng"
                     ],
                     "date_format": "YYYY-MM-DD",
-                    "default_language": "eng",
                     "max_value_length": 640,
                     "number_format": {
                         "decimal_symbol": ".",
@@ -164,7 +163,7 @@
                             }
                         ],
                         "exited_on": "2018-07-06T12:30:24.123456789Z",
-                        "expires_on": "2018-07-06T12:30:01.123456789Z",
+                        "expires_on": null,
                         "flow": {
                             "name": "Router Test",
                             "uuid": "615b8a0f-588c-4d20-a05f-363b0b4ce6f4"
@@ -258,7 +257,6 @@
                             "eng"
                         ],
                         "date_format": "YYYY-MM-DD",
-                        "default_language": "eng",
                         "max_value_length": 640,
                         "number_format": {
                             "decimal_symbol": ".",
@@ -313,7 +311,6 @@
                 "eng"
             ],
             "date_format": "YYYY-MM-DD",
-            "default_language": "eng",
             "time_format": "hh:mm",
             "timezone": "America/Los_Angeles"
         },

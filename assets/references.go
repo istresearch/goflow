@@ -5,14 +5,14 @@ import (
 
 	validator "gopkg.in/go-playground/validator.v9"
 
+	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/uuids"
 )
 
 func init() {
-	utils.Validator.RegisterStructValidation(GroupReferenceValidation, GroupReference{})
-	utils.Validator.RegisterStructValidation(LabelReferenceValidation, LabelReference{})
+	utils.RegisterStructValidator(GroupReferenceValidation, GroupReference{})
+	utils.RegisterStructValidator(LabelReferenceValidation, LabelReference{})
 }
 
 // Reference is interface for all reference types
@@ -364,6 +364,62 @@ func (r *TicketerReference) String() string {
 }
 
 var _ UUIDReference = (*TicketerReference)(nil)
+
+// UserReference is used to reference a user
+type UserReference struct {
+	Email string `json:"email" validate:"required"`
+	Name  string `json:"name"`
+}
+
+// NewUserReference creates a new user reference with the given key and name
+func NewUserReference(email, name string) *UserReference {
+	return &UserReference{Email: email, Name: name}
+}
+
+// Type returns the name of the asset type
+func (r *UserReference) Type() string {
+	return "user"
+}
+
+// Identity returns the unique identity of the asset
+func (r *UserReference) Identity() string {
+	return r.Email
+}
+
+// Variable returns whether this a variable (vs concrete) reference
+func (r *UserReference) Variable() bool {
+	return false
+}
+
+func (r *UserReference) String() string {
+	return fmt.Sprintf("%s[email=%s,name=%s]", r.Type(), r.Identity(), r.Name)
+}
+
+// UmarshalJSON unmarshals this object from JSON
+func (r *UserReference) UnmarshalJSON(data []byte) error {
+	// can be read from email string
+	if data[0] == '"' {
+		var email string
+		if err := jsonx.Unmarshal(data, &email); err != nil {
+			return err
+		}
+		r.Email = email
+		r.Name = ""
+		return nil
+	}
+
+	// or a JSON object with email/name properties
+	var raw map[string]string
+	if err := jsonx.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	r.Email = raw["email"]
+	r.Name = raw["name"]
+	return nil
+}
+
+var _ Reference = (*UserReference)(nil)
 
 //------------------------------------------------------------------------------------------
 // Callbacks for missing assets

@@ -8,7 +8,7 @@
         "read_error": "field 'flow' is required"
     },
     {
-        "description": "params are accessible in context",
+        "description": "params, user and origin are accessible in context",
         "trigger": {
             "type": "manual",
             "flow": {
@@ -24,19 +24,31 @@
             "params": {
                 "foo": "bar"
             },
-            "triggered_on": "2000-01-01T00:00:00Z"
+            "triggered_on": "2000-01-01T00:00:00Z",
+            "user": {
+                "email": "bob@nyaruka.com",
+                "name": "Bob"
+            },
+            "origin": "api"
         },
         "events": [],
         "context": {
-            "type": "manual",
+            "keyword": "",
+            "origin": "api",
             "params": {
                 "foo": "bar"
             },
-            "keyword": null
+            "ticket": null,
+            "type": "manual",
+            "user": {
+                "email": "bob@nyaruka.com",
+                "first_name": "Bob",
+                "name": "Bob"
+            }
         }
     },
     {
-        "description": "params are optional but always non-null",
+        "description": "user and params are optional (params always non-null in expressions)",
         "trigger": {
             "type": "manual",
             "flow": {
@@ -53,9 +65,12 @@
         },
         "events": [],
         "context": {
-            "type": "manual",
+            "keyword": "",
+            "origin": "",
             "params": {},
-            "keyword": null
+            "ticket": null,
+            "type": "manual",
+            "user": null
         }
     }
 ]

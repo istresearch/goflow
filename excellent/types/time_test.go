@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
-	"github.com/nyaruka/goflow/utils/dates"
-	"github.com/nyaruka/goflow/utils/jsonx"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -23,12 +23,12 @@ func TestXTime(t *testing.T) {
 	assert.Equal(t, `17:01`, types.NewXTime(dates.NewTimeOfDay(17, 1, 30, 0)).Format(env))
 	assert.Equal(t, `XTime(17, 1, 30, 0)`, types.NewXTime(dates.NewTimeOfDay(17, 1, 30, 0)).String())
 
-	formatted, err := t1.FormatCustom(envs.TimeFormat("ss"))
+	formatted, err := t1.FormatCustom(env, "ss")
 	assert.NoError(t, err)
 	assert.Equal(t, `30`, formatted)
 
-	formatted, err = t1.FormatCustom(envs.TimeFormat("ssssss"))
-	assert.EqualError(t, err, "invalid date format, invalid count of 's' format: 6")
+	_, err = t1.FormatCustom(env, "ssssss")
+	assert.EqualError(t, err, "'ssssss' is not valid in a time formatting layout")
 
 	marshaled, err := jsonx.Marshal(t1)
 	assert.NoError(t, err)

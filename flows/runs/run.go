@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent"
@@ -11,9 +14,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/dates"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/pkg/errors"
 )
@@ -21,7 +21,7 @@ import (
 type flowRun struct {
 	uuid        flows.RunUUID
 	session     flows.Session
-	environment *runEnvironment
+	environment envs.Environment
 
 	flow    flows.Flow
 	flowRef *assets.FlowReference
@@ -91,7 +91,13 @@ func (r *flowRun) Exit(status flows.RunStatus) {
 
 	r.status = status
 	r.exitedOn = &now
+	r.expiresOn = nil
 	r.modifiedOn = now
+
+	// if we have a parent, it's expiration should no longer include our expiration
+	if r.ParentInSession() != nil {
+		r.ParentInSession().ResetExpiration(nil)
+	}
 }
 func (r *flowRun) Status() flows.RunStatus { return r.status }
 func (r *flowRun) SetStatus(status flows.RunStatus) {
@@ -153,11 +159,15 @@ func (r *flowRun) LogError(step flows.Step, err error) {
 // find the first event matching the given step UUID and type
 func (r *flowRun) findEvent(stepUUID flows.StepUUID, eType string) flows.Event {
 	for _, e := range r.events {
-		if e.StepUUID() == stepUUID && e.Type() == eType {
+		if (stepUUID == "" || e.StepUUID() == stepUUID) && e.Type() == eType {
 			return e
 		}
 	}
 	return nil
+}
+
+func (r *flowRun) ReceivedInput() bool {
+	return r.findEvent("", events.TypeMsgReceived) != nil
 }
 
 func (r *flowRun) Path() []flows.Step { return r.path }
@@ -177,7 +187,10 @@ func (r *flowRun) PathLocation() (flows.Step, flows.Node, error) {
 	step := r.Path()[len(r.Path())-1]
 
 	// check that we still have a node for this step
-	node := r.Flow().GetNode(step.NodeUUID())
+	var node flows.Node
+	if r.Flow() != nil {
+		node = r.Flow().GetNode(step.NodeUUID())
+	}
 	if node == nil {
 		return nil, nil, errors.Errorf("run is located at a flow node that no longer exists")
 	}
@@ -219,20 +232,34 @@ func (r *flowRun) ExitedOn() *time.Time { return r.exitedOn }
 //   run:run -> the current run
 //   child:related_run -> the last child run
 //   parent:related_run -> the parent of the run
+//   ticket:ticket -> the last opened ticket for the contact
 //   webhook:any -> the parsed JSON response of the last webhook call
+//   node:node -> the current node
 //   globals:globals -> the global values
 //   trigger:trigger -> the trigger that started this session
+//   resume:resume -> the current resume that continued this session
 //
 // @context root
 func (r *flowRun) RootContext(env envs.Environment) map[string]types.XValue {
-	var urns, fields types.XValue
+	var urns, fields, ticket, node types.XValue
 	if r.Contact() != nil {
 		urns = flows.ContextFunc(env, r.Contact().URNs().MapContext)
 		fields = flows.Context(env, r.Contact().Fields())
+
+		tickets := r.Contact().Tickets()
+
+		if tickets.Count() > 0 {
+			ticket = flows.Context(env, tickets.All()[tickets.Count()-1])
+		}
 	}
 
 	var child = newRelatedRunContext(r.Session().GetCurrentChild(r))
 	var parent = newRelatedRunContext(r.Parent())
+
+	_, n, _ := r.PathLocation()
+	if n != nil {
+		node = flows.ContextFunc(env, r.nodeContext)
+	}
 
 	return map[string]types.XValue{
 		// the available runs
@@ -240,17 +267,20 @@ func (r *flowRun) RootContext(env envs.Environment) map[string]types.XValue {
 		"child":  flows.Context(env, child),
 		"parent": flows.Context(env, parent),
 
-		// shortcuts to things on the current run
+		// shortcuts to things on the current run or contact
 		"contact": flows.Context(env, r.Contact()),
 		"results": flows.Context(env, r.Results()),
 		"urns":    urns,
 		"fields":  fields,
+		"ticket":  ticket,
 
 		// other
 		"trigger":      flows.Context(env, r.Session().Trigger()),
+		"resume":       flows.Context(env, r.Session().CurrentResume()),
 		"input":        flows.Context(env, r.Session().Input()),
 		"globals":      flows.Context(env, r.Session().Assets().Globals()),
 		"webhook":      r.webhook,
+		"node":         node,
 		"legacy_extra": r.legacyExtra.ToXValue(env),
 	}
 }
@@ -286,6 +316,27 @@ func (r *flowRun) Context(env envs.Environment) map[string]types.XValue {
 	}
 }
 
+// returns the context representation of the current node
+//
+//   uuid:text -> the UUID of the node
+//   visit_count:number -> the count of visits to the node in this run
+//
+// @context node
+func (r *flowRun) nodeContext(env envs.Environment) map[string]types.XValue {
+	_, node, _ := r.PathLocation()
+	visitCount := 0
+	for _, s := range r.path {
+		if s.NodeUUID() == node.UUID() {
+			visitCount++
+		}
+	}
+
+	return map[string]types.XValue{
+		"uuid":        types.NewXText(string(node.UUID())),
+		"visit_count": types.NewXNumberFromInt(visitCount),
+	}
+}
+
 // EvaluateTemplate evaluates the given template in the context of this run
 func (r *flowRun) EvaluateTemplateValue(template string) (types.XValue, error) {
 	context := types.NewXObject(r.RootContext(r.Environment()))
@@ -311,24 +362,17 @@ func (r *flowRun) EvaluateTemplate(template string) (string, error) {
 
 // get the ordered list of languages to be used for localization in this run
 func (r *flowRun) getLanguages() []envs.Language {
-	// TODO cache this this?
-
-	contact := r.Contact()
 	languages := make([]envs.Language, 0, 3)
 
-	// if contact has a allowed language, it takes priority
-	if contact != nil && contact.Language() != envs.NilLanguage {
-		for _, l := range r.Environment().AllowedLanguages() {
-			if l == contact.Language() {
-				languages = append(languages, contact.Language())
-				break
-			}
-		}
+	// if contact has an allowed language, it takes priority
+	contactLanguage := r.Environment().DefaultLanguage()
+	if contactLanguage != envs.NilLanguage {
+		languages = append(languages, contactLanguage)
 	}
 
 	// next we include the default language if it's different to the contact language
-	defaultLanguage := r.Environment().DefaultLanguage()
-	if defaultLanguage != envs.NilLanguage && defaultLanguage != contact.Language() {
+	defaultLanguage := r.Session().Environment().DefaultLanguage()
+	if defaultLanguage != envs.NilLanguage && defaultLanguage != contactLanguage {
 		languages = append(languages, defaultLanguage)
 	}
 

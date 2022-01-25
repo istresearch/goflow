@@ -65,7 +65,7 @@ func (a *OpenTicketAction) Execute(run flows.FlowRun, step flows.Step, logModifi
 
 	ticket := a.open(run, step, ticketer, evaluatedSubject, evaluatedBody, logEvent)
 	if ticket != nil {
-		a.saveResult(run, step, a.ResultName, string(ticket.UUID), CategorySuccess, "", "", nil, logEvent)
+		a.saveResult(run, step, a.ResultName, string(ticket.UUID()), CategorySuccess, "", "", nil, logEvent)
 	} else {
 		a.saveResult(run, step, a.ResultName, "", CategoryFailure, "", "", nil, logEvent)
 	}
@@ -101,6 +101,8 @@ func (a *OpenTicketAction) open(run flows.FlowRun, step flows.Step, ticketer *fl
 	}
 	if ticket != nil {
 		logEvent(events.NewTicketOpened(ticket))
+
+		run.Contact().Tickets().Add(ticket)
 	}
 
 	return ticket

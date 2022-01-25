@@ -1,8 +1,11 @@
-# Goflow [![Build Status](https://github.com/nyaruka/goflow/workflows/CI/badge.svg)](https://github.com/nyaruka/goflow/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/goflow/branch/master/graph/badge.svg)](https://codecov.io/gh/nyaruka/goflow) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/goflow)](https://goreportcard.com/report/github.com/nyaruka/goflow)
+# Goflow 
+[![Build Status](https://github.com/nyaruka/goflow/workflows/CI/badge.svg)](https://github.com/nyaruka/goflow/actions?query=workflow%3ACI) 
+[![codecov](https://codecov.io/gh/nyaruka/goflow/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/goflow) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/goflow)](https://goreportcard.com/report/github.com/nyaruka/goflow)
 
 ## Specification
 
-See [here](https://nyaruka.github.io/goflow/en_US/) for the complete specification docs.
+See [here](https://textit.com/mr/docs/) for the complete specification docs.
 
 ## Basic Usage
 
@@ -18,7 +21,7 @@ env := envs.NewBuilder().Build()
 source, _ := static.LoadSource("myassets.json")
 assets, _ := engine.NewSessionAssets(env, source, nil)
 contact := flows.NewContact(assets, ...)
-trigger := triggers.NewManual(env, contact, flow.Reference(), nil, false, nil, time.Now())
+trigger := triggers.NewBuilder(env, contact, flow.Reference()).Manual().Build()
 eng := engine.NewBuilder().Build()
 session, sprint, err := eng.NewSession(assets, trigger)
 ```

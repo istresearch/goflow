@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/assets/static"
@@ -21,7 +22,6 @@ import (
 	"github.com/nyaruka/goflow/flows/routers/waits"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/jsonx"
 
 	"github.com/Masterminds/semver"
 )
@@ -47,7 +47,7 @@ type Environment struct {
 }
 
 // NewEnvironment creates a new environment.
-func NewEnvironment(dateFormat string, timeFormat string, timezone string, defaultLanguage string, allowedLanguages *StringSlice, defaultCountry string, redactionPolicy string) (*Environment, error) {
+func NewEnvironment(dateFormat string, timeFormat string, timezone string, allowedLanguages *StringSlice, defaultCountry string, redactionPolicy string) (*Environment, error) {
 	tz, err := time.LoadLocation(timezone)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,6 @@ func NewEnvironment(dateFormat string, timeFormat string, timezone string, defau
 			WithDateFormat(envs.DateFormat(dateFormat)).
 			WithTimeFormat(envs.TimeFormat(timeFormat)).
 			WithTimezone(tz).
-			WithDefaultLanguage(envs.Language(defaultLanguage)).
 			WithAllowedLanguages(langs).
 			WithDefaultCountry(envs.Country(defaultCountry)).
 			WithRedactionPolicy(envs.RedactionPolicy(redactionPolicy)).
@@ -137,7 +136,7 @@ func (m *MsgIn) Text() string {
 
 func (m *MsgIn) Attachments() *StringSlice {
 	attachments := NewStringSlice(len(m.target.Attachments()))
-	for attachment := range m.target.Attachments() {
+	for _, attachment := range m.target.Attachments() {
 		attachments.Add(string(attachment))
 	}
 	return attachments
@@ -163,7 +162,7 @@ type Trigger struct {
 func NewManualTrigger(environment *Environment, contact *Contact, flow *FlowReference) *Trigger {
 	flowRef := assets.NewFlowReference(assets.FlowUUID(flow.uuid), flow.name)
 	return &Trigger{
-		target: triggers.NewManual(environment.target, flowRef, contact.target, false, nil),
+		target: triggers.NewBuilder(environment.target, flowRef, contact.target).Manual().Build(),
 	}
 }
 

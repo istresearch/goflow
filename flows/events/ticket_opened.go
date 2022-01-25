@@ -1,6 +1,7 @@
 package events
 
 import (
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 )
 
@@ -10,6 +11,15 @@ func init() {
 
 // TypeTicketOpened is the type for our ticket opened events
 const TypeTicketOpened string = "ticket_opened"
+
+type Ticket struct {
+	UUID       flows.TicketUUID          `json:"uuid"                   validate:"required,uuid4"`
+	Ticketer   *assets.TicketerReference `json:"ticketer"               validate:"required,dive"`
+	Subject    string                    `json:"subject"`
+	Body       string                    `json:"body"`
+	ExternalID string                    `json:"external_id,omitempty"`
+	Assignee   *assets.UserReference     `json:"assignee,omitempty"     validate:"omitempty,dive"`
+}
 
 // TicketOpenedEvent events are created when a new ticket is opened.
 //
@@ -24,7 +34,8 @@ const TypeTicketOpened string = "ticket_opened"
 //       },
 //       "subject": "Need help",
 //       "body": "Where are my cookies?",
-//       "external_id": "32526523"
+//       "external_id": "32526523",
+//       "assignee": {"email": "bob@nyaruka.com", "name": "Bob"}
 //     }
 //   }
 //
@@ -32,13 +43,20 @@ const TypeTicketOpened string = "ticket_opened"
 type TicketOpenedEvent struct {
 	baseEvent
 
-	Ticket *flows.Ticket `json:"ticket"`
+	Ticket *Ticket `json:"ticket"`
 }
 
 // NewTicketOpened returns a new ticket opened event
 func NewTicketOpened(ticket *flows.Ticket) *TicketOpenedEvent {
 	return &TicketOpenedEvent{
 		baseEvent: newBaseEvent(TypeTicketOpened),
-		Ticket:    ticket,
+		Ticket: &Ticket{
+			UUID:       ticket.UUID(),
+			Ticketer:   ticket.Ticketer().Reference(),
+			Subject:    ticket.Subject(),
+			Body:       ticket.Body(),
+			ExternalID: ticket.ExternalID(),
+			Assignee:   ticket.Assignee().Reference(),
+		},
 	}
 }

@@ -3,6 +3,8 @@ package definition
 import (
 	"encoding/json"
 
+	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
@@ -11,8 +13,6 @@ import (
 	"github.com/nyaruka/goflow/flows/inspect"
 	"github.com/nyaruka/goflow/flows/inspect/issues"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
@@ -297,10 +297,6 @@ var _ flows.Flow = (*flow)(nil)
 //------------------------------------------------------------------------------------------
 // JSON Encoding / Decoding
 //------------------------------------------------------------------------------------------
-
-func init() {
-	utils.Validator.RegisterAlias("flow_type", "eq=messaging|eq=messaging_offline|eq=voice")
-}
 
 type flowEnvelope struct {
 	migrations.Header13

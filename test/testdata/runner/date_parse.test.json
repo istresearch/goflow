@@ -51,7 +51,6 @@
                         "eng"
                     ],
                     "date_format": "YYYY-MM-DD",
-                    "default_language": "eng",
                     "max_value_length": 640,
                     "number_format": {
                         "decimal_symbol": ".",
@@ -133,7 +132,6 @@
                             "eng"
                         ],
                         "date_format": "YYYY-MM-DD",
-                        "default_language": "eng",
                         "max_value_length": 640,
                         "number_format": {
                             "decimal_symbol": ".",
@@ -160,7 +158,7 @@
         {
             "events": [
                 {
-                    "created_on": "2018-07-06T12:30:11.123456789Z",
+                    "created_on": "2018-07-06T12:30:12.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Nexmo",
@@ -228,6 +226,7 @@
                     },
                     "id": 1234567,
                     "language": "eng",
+                    "last_seen_on": "2000-01-01T00:00:00Z",
                     "name": "Ben Haggerty",
                     "status": "active",
                     "timezone": "America/Guayaquil",
@@ -243,7 +242,6 @@
                         "eng"
                     ],
                     "date_format": "YYYY-MM-DD",
-                    "default_language": "eng",
                     "max_value_length": 640,
                     "number_format": {
                         "decimal_symbol": ".",
@@ -288,7 +286,7 @@
                                 "type": "msg_wait"
                             },
                             {
-                                "created_on": "2018-07-06T12:30:11.123456789Z",
+                                "created_on": "2018-07-06T12:30:12.123456789Z",
                                 "msg": {
                                     "channel": {
                                         "name": "Nexmo",
@@ -339,7 +337,7 @@
                             }
                         ],
                         "exited_on": "2018-07-06T12:30:24.123456789Z",
-                        "expires_on": "2018-07-06T12:30:09.123456789Z",
+                        "expires_on": null,
                         "flow": {
                             "name": "Date Test",
                             "uuid": "615b8a0f-588c-4d20-a05f-363b0b4ce6f4"
@@ -403,7 +401,6 @@
                             "eng"
                         ],
                         "date_format": "YYYY-MM-DD",
-                        "default_language": "eng",
                         "max_value_length": 640,
                         "number_format": {
                             "decimal_symbol": ".",
@@ -469,7 +466,6 @@
                 "eng"
             ],
             "date_format": "YYYY-MM-DD",
-            "default_language": "eng",
             "time_format": "h:mm aa",
             "timezone": "America/Los_Angeles"
         },

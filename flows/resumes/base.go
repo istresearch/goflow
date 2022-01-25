@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
+	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/dates"
-	"github.com/nyaruka/goflow/utils/jsonx"
 
 	"github.com/pkg/errors"
 )
@@ -52,7 +52,7 @@ func (r *baseResume) Contact() *flows.Contact       { return r.contact }
 func (r *baseResume) ResumedOn() time.Time          { return r.resumedOn }
 
 // Apply applies our state changes and saves any events to the run
-func (r *baseResume) Apply(run flows.FlowRun, logEvent flows.EventCallback) error {
+func (r *baseResume) Apply(run flows.FlowRun, logEvent flows.EventCallback) {
 	if r.environment != nil {
 		if !run.Session().Environment().Equal(r.environment) {
 			logEvent(events.NewEnvironmentRefreshed(r.environment))
@@ -66,15 +66,41 @@ func (r *baseResume) Apply(run flows.FlowRun, logEvent flows.EventCallback) erro
 		}
 
 		run.Session().SetContact(r.contact)
-
-		triggers.EnsureDynamicGroups(run.Session(), logEvent)
 	}
 
 	if run.Status() == flows.RunStatusWaiting {
 		run.SetStatus(flows.RunStatusActive)
 	}
+}
 
-	return nil
+//------------------------------------------------------------------------------------------
+// Expressions context
+//------------------------------------------------------------------------------------------
+
+// Context is the schema of trigger objects in the context, across all types
+type Context struct {
+	type_ string
+	dial  types.XValue
+}
+
+func (c *Context) asMap() map[string]types.XValue {
+	return map[string]types.XValue{
+		"type": types.NewXText(c.type_),
+		"dial": c.dial,
+	}
+}
+
+func (r *baseResume) context() *Context {
+	return &Context{type_: r.type_}
+}
+
+// Context returns the properties available in expressions
+//
+//   type:text -> the type of resume that resumed this session
+//
+// @context resume
+func (r *baseResume) Context(env envs.Environment) map[string]types.XValue {
+	return r.context().asMap()
 }
 
 //------------------------------------------------------------------------------------------

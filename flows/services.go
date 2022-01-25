@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/httpx"
 
 	"github.com/shopspring/decimal"
 )
@@ -45,7 +46,7 @@ const (
 // WebhookCall is the result of a webhook call
 type WebhookCall struct {
 	*httpx.Trace
-	ValidJSON bool
+	ResponseJSON []byte
 }
 
 // WebhookService provides webhook functionality to the engine
@@ -93,6 +94,7 @@ const (
 
 // AirtimeTransfer is the result of an attempted airtime transfer
 type AirtimeTransfer struct {
+	UUID          uuids.UUID
 	Sender        urns.URN
 	Recipient     urns.URN
 	Currency      string
@@ -154,7 +156,7 @@ func NewHTTPLog(trace *httpx.Trace, statusFn HTTPStatusResolver, redact utils.Re
 func newHTTPLogWithStatus(trace *httpx.Trace, status CallStatus, redact utils.Redactor) *HTTPLog {
 	url := trace.Request.URL.String()
 	request := string(trace.RequestTrace)
-	response := trace.ResponseTraceUTF8("...")
+	response := string(utils.ReplaceEscapedNulls(trace.SanitizedResponse("..."), []byte(`�`)))
 
 	if redact != nil {
 		url = redact(url)

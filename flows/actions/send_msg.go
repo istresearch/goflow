@@ -2,11 +2,11 @@ package actions
 
 import (
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/utils/uuids"
 )
 
 func init() {
@@ -119,7 +119,7 @@ func (a *SendMsgAction) Execute(run flows.FlowRun, step flows.Step, logModifier 
 				}
 
 				evaluatedText = translation.Substitute(evaluatedVariables)
-				templating = flows.NewMsgTemplating(a.Templating.Template, translation.Language(), evaluatedVariables)
+				templating = flows.NewMsgTemplating(a.Templating.Template, translation.Language(), translation.Country(), evaluatedVariables, translation.Namespace())
 			}
 		}
 

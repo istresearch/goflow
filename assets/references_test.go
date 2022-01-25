@@ -3,10 +3,10 @@ package assets_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -127,6 +127,16 @@ func TestReferences(t *testing.T) {
 
 	// ticketer references must always be concrete
 	assert.EqualError(t, utils.Validate(assets.NewTicketerReference("", "Booking")), "field 'uuid' is required")
+
+	userRef := assets.NewUserReference("bob@nyaruka.com", "Bob")
+	assert.Equal(t, "user", userRef.Type())
+	assert.Equal(t, "bob@nyaruka.com", userRef.Identity())
+	assert.Equal(t, "user[email=bob@nyaruka.com,name=Bob]", userRef.String())
+	assert.False(t, userRef.Variable())
+	assert.NoError(t, utils.Validate(userRef))
+
+	// user references must always be concrete
+	assert.EqualError(t, utils.Validate(assets.NewUserReference("", "Jim")), "field 'email' is required")
 }
 
 func TestChannelReferenceUnmarsal(t *testing.T) {
@@ -138,12 +148,39 @@ func TestChannelReferenceUnmarsal(t *testing.T) {
 	assert.Equal(t, "Old Channel", channel.Name)
 }
 
+func TestUserReferenceUnmarsal(t *testing.T) {
+	// check that we can unmarshal from just a string (the email address)
+	user := &assets.UserReference{}
+	err := utils.UnmarshalAndValidate([]byte(`"bob@nyaruka.com"`), user)
+	assert.NoError(t, err)
+	assert.Equal(t, "bob@nyaruka.com", user.Email)
+	assert.Equal(t, "", user.Name)
+
+	// or an object
+	err = utils.UnmarshalAndValidate([]byte(`{"email": "jim@nyaruka.com", "name": "Jim"}`), user)
+	assert.NoError(t, err)
+	assert.Equal(t, "jim@nyaruka.com", user.Email)
+	assert.Equal(t, "Jim", user.Name)
+
+	// but not a malformed string
+	err = utils.UnmarshalAndValidate([]byte(`"xxx`), user)
+	assert.EqualError(t, err, "unexpected end of JSON input")
+
+	// or malformed object
+	err = utils.UnmarshalAndValidate([]byte(`{"email": "bob@nyaruka.com", `), user)
+	assert.EqualError(t, err, "unexpected end of JSON input")
+
+	// or invalid object
+	err = utils.UnmarshalAndValidate([]byte(`{"email": ""}`), user)
+	assert.EqualError(t, err, "field 'email' is required")
+}
+
 func TestTypedReference(t *testing.T) {
 	ref := assets.NewGroupReference("61602f3e-f603-4c70-8a8f-c477505bf4bf", "Bobs")
 	typed := assets.NewTypedReference(ref)
 
-	refJSON, _ := jsonx.Marshal(ref)
-	typedJSON, _ := jsonx.Marshal(typed)
+	refJSON := jsonx.MustMarshal(ref)
+	typedJSON := jsonx.MustMarshal(typed)
 
 	assert.Equal(t, `{"uuid":"61602f3e-f603-4c70-8a8f-c477505bf4bf","name":"Bobs"}`, string(refJSON))
 	assert.Equal(t, `{"uuid":"61602f3e-f603-4c70-8a8f-c477505bf4bf","name":"Bobs","type":"group"}`, string(typedJSON))

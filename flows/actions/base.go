@@ -7,21 +7,24 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/dates"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/pkg/errors"
 )
 
 // max number of bytes to be saved to extra on a result
 const resultExtraMaxBytes = 10000
+
+// max length of a message attachment (type:url)
+const maxAttachmentLength = 2048
 
 // common category names
 const (
@@ -96,6 +99,10 @@ func (a *baseAction) evaluateMessage(run flows.FlowRun, languages []envs.Languag
 			logEvent(events.NewErrorf("attachment text evaluated to empty string, skipping"))
 			continue
 		}
+		if len(evaluatedAttachment) > maxAttachmentLength {
+			logEvent(events.NewErrorf("evaluated attachment is longer than %d limit, skipping", maxAttachmentLength))
+			continue
+		}
 		evaluatedAttachments = append(evaluatedAttachments, utils.Attachment(evaluatedAttachment))
 	}
 
@@ -134,7 +141,7 @@ func (a *baseAction) saveWebhookResult(run flows.FlowRun, step flows.Step, name 
 	if call.Response != nil {
 		value = strconv.Itoa(call.Response.StatusCode)
 
-		if len(call.ResponseBody) < resultExtraMaxBytes && call.ValidJSON {
+		if len(call.ResponseJSON) > 0 && len(call.ResponseJSON) < resultExtraMaxBytes {
 			extra = call.ResponseBody
 		}
 	}
@@ -170,6 +177,14 @@ type universalAction struct{}
 
 // AllowedFlowTypes returns the flow types which this action is allowed to occur in
 func (a *universalAction) AllowedFlowTypes() []flows.FlowType {
+	return []flows.FlowType{flows.FlowTypeMessaging, flows.FlowTypeMessagingBackground, flows.FlowTypeMessagingOffline, flows.FlowTypeVoice}
+}
+
+// utility struct which sets the allowed flow types to non-background
+type interactiveAction struct{}
+
+// AllowedFlowTypes returns the flow types which this action is allowed to occur in
+func (a *interactiveAction) AllowedFlowTypes() []flows.FlowType {
 	return []flows.FlowType{flows.FlowTypeMessaging, flows.FlowTypeMessagingOffline, flows.FlowTypeVoice}
 }
 
@@ -178,7 +193,7 @@ type onlineAction struct{}
 
 // AllowedFlowTypes returns the flow types which this action is allowed to occur in
 func (a *onlineAction) AllowedFlowTypes() []flows.FlowType {
-	return []flows.FlowType{flows.FlowTypeMessaging, flows.FlowTypeVoice}
+	return []flows.FlowType{flows.FlowTypeMessaging, flows.FlowTypeMessagingBackground, flows.FlowTypeVoice}
 }
 
 // utility struct which sets the allowed flow types to just voice
@@ -203,15 +218,11 @@ func (a *otherContactsAction) resolveRecipients(run flows.FlowRun, logEvent flow
 
 	// copy URNs
 	urnList := make([]urns.URN, 0, len(a.URNs))
-	for _, urn := range a.URNs {
-		urnList = append(urnList, urn)
-	}
+	urnList = append(urnList, a.URNs...)
 
 	// copy contact references
 	contactRefs := make([]*flows.ContactReference, 0, len(a.Contacts))
-	for _, contactRef := range a.Contacts {
-		contactRefs = append(contactRefs, contactRef)
-	}
+	contactRefs = append(contactRefs, a.Contacts...)
 
 	// resolve group references
 	groups, err := resolveGroups(run, a.Groups, logEvent)

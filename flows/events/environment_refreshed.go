@@ -3,9 +3,9 @@ package events
 import (
 	"encoding/json"
 
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/utils/jsonx"
 )
 
 func init() {
@@ -24,7 +24,6 @@ const TypeEnvironmentRefreshed string = "environment_refreshed"
 //       "date_format": "YYYY-MM-DD",
 //       "time_format": "hh:mm",
 //       "timezone": "Africa/Kigali",
-//       "default_language": "eng",
 //       "allowed_languages": ["eng", "fra"]
 //     }
 //   }

@@ -6,12 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/services/webhooks"
-	"github.com/nyaruka/goflow/utils/httpx"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
@@ -35,9 +34,7 @@ func NewEngine() flows.Engine {
 }
 
 // implementation of an email service for testing which just fakes sending the email
-type emailService struct {
-	classifier *flows.Classifier
-}
+type emailService struct{}
 
 func newEmailService() *emailService {
 	return &emailService{}
@@ -61,7 +58,7 @@ func (s *classificationService) Classify(session flows.Session, input string, lo
 	extractedIntents := make([]flows.ExtractedIntent, len(s.classifier.Intents()))
 	confidence := decimal.RequireFromString("0.5")
 	for i := range classifierIntents {
-		extractedIntents[i] = flows.ExtractedIntent{classifierIntents[i], confidence}
+		extractedIntents[i] = flows.ExtractedIntent{Name: classifierIntents[i], Confidence: confidence}
 		confidence = confidence.Div(decimal.RequireFromString("2"))
 	}
 
@@ -77,8 +74,8 @@ func (s *classificationService) Classify(session flows.Session, input string, lo
 	classification := &flows.Classification{
 		Intents: extractedIntents,
 		Entities: map[string][]flows.ExtractedEntity{
-			"location": []flows.ExtractedEntity{
-				flows.ExtractedEntity{"Quito", decimal.RequireFromString("1.0")},
+			"location": {
+				flows.ExtractedEntity{Value: "Quito", Confidence: decimal.RequireFromString("1.0")},
 			},
 		},
 	}
@@ -121,7 +118,9 @@ func (s *ticketService) Open(session flows.Session, subject, body string, logHTT
 		ElapsedMS: 1,
 	})
 
-	return flows.NewTicket(flows.TicketUUID(uuids.New()), s.ticketer.Reference(), subject, body, "123456"), nil
+	ticket := flows.OpenTicket(s.ticketer, subject, body)
+	ticket.SetExternalID("123456")
+	return ticket, nil
 }
 
 // implementation of an airtime service for testing which uses a fixed currency

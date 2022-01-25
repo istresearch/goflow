@@ -1,13 +1,13 @@
 package main
 
-// go install github.com/nyaruka/goflow/cmd/transferairtime
-
 import (
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 
+	"github.com/nyaruka/gocommon/httpx"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/assets/static"
@@ -16,8 +16,6 @@ import (
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/services/airtime/dtone"
-	"github.com/nyaruka/goflow/utils/httpx"
-	"github.com/nyaruka/goflow/utils/jsonx"
 
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
@@ -28,10 +26,10 @@ const usage = `usage: transferairtime [flags] <destnumber> <amount> <currency>`
 var verbose bool
 
 func main() {
-	var dtoneLogin, dtoneToken string
+	var dtoneKey, dtoneSecret string
 	flags := flag.NewFlagSet("", flag.ExitOnError)
-	flags.StringVar(&dtoneLogin, "dtone.login", "", "login for DTOne service")
-	flags.StringVar(&dtoneToken, "dtone.token", "", "token for DTOne service")
+	flags.StringVar(&dtoneKey, "dtone.key", "", "API key for DTOne service")
+	flags.StringVar(&dtoneSecret, "dtone.secret", "", "API secret for DTOne service")
 	flags.BoolVar(&verbose, "v", false, "enable verbose logging")
 	flags.Parse(os.Args[1:])
 	args := flags.Args()
@@ -54,17 +52,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	if dtoneLogin == "" || dtoneToken == "" {
+	if dtoneKey == "" || dtoneSecret == "" {
 		fmt.Println("no airtime service credentials provided")
 		os.Exit(1)
 	}
 
 	httpx.SetDebug(verbose)
 
-	svcFactory, err := configureDTOne(dtoneLogin, dtoneToken)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	svcFactory := func(flows.Session) (flows.AirtimeService, error) {
+		return dtone.NewService(http.DefaultClient, nil, dtoneKey, dtoneSecret), nil
 	}
 
 	if err := transferAirtime(destination, amount, args[2], svcFactory); err != nil {
@@ -125,7 +121,9 @@ func transferAirtime(destination urns.URN, amount decimal.Decimal, currency stri
 	contact := flows.NewEmptyContact(sa, "", "", nil)
 	contact.AddURN(destination, nil)
 
-	_, sprint, err := eng.NewSession(sa, triggers.NewManual(env, assets.NewFlowReference(assets.FlowUUID("2374f60d-7412-442c-9177-585967afa972"), "Airtime"), contact, false, nil))
+	trigger := triggers.NewBuilder(env, assets.NewFlowReference(assets.FlowUUID("2374f60d-7412-442c-9177-585967afa972"), "Airtime"), contact).Manual().Build()
+
+	_, sprint, err := eng.NewSession(sa, trigger)
 	if err != nil {
 		return err
 	}
@@ -136,17 +134,4 @@ func transferAirtime(destination urns.URN, amount decimal.Decimal, currency stri
 	}
 
 	return nil
-}
-
-func configureDTOne(login, token string) (engine.AirtimeServiceFactory, error) {
-	// test credentials using ping
-	client := dtone.NewClient(http.DefaultClient, nil, login, token)
-	_, err := client.Ping()
-	if err != nil {
-		return nil, errors.Wrap(err, "ping failed for provided DTOne credentials")
-	}
-
-	return func(flows.Session) (flows.AirtimeService, error) {
-		return dtone.NewService(http.DefaultClient, nil, login, token, ""), nil
-	}, nil
 }

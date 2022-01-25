@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver"
+	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
@@ -18,8 +20,6 @@ import (
 	"github.com/nyaruka/goflow/flows/routers/waits"
 	"github.com/nyaruka/goflow/flows/routers/waits/hints"
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,6 +52,14 @@ func TestBrokenFlows(t *testing.T) {
 			"node UUID a58be63b-907d-4a1a-856b-0bb5579d7507 isn't unique",
 		},
 		{
+			"invalid_flow_type.json",
+			"field 'type' is not a valid flow type",
+		},
+		{
+			"invalid_action_by_flow_type.json",
+			"invalid node[uuid=a58be63b-907d-4a1a-856b-0bb5579d7507]: action type 'say_msg' is not allowed in a flow of type 'messaging'",
+		},
+		{
 			"invalid_action_by_tag.json",
 			"unable to read action: field 'text' is required",
 		},
@@ -62,6 +70,10 @@ func TestBrokenFlows(t *testing.T) {
 		{
 			"invalid_timeout_category.json",
 			"invalid node[uuid=a58be63b-907d-4a1a-856b-0bb5579d7507]: invalid router: timeout category 13fea3d4-b925-495b-b593-1c9e905e700d is not a valid category",
+		},
+		{
+			"invalid_wait_by_flow_type.json",
+			"invalid node[uuid=a58be63b-907d-4a1a-856b-0bb5579d7507]: invalid router: wait type 'msg' is not allowed in a flow of type 'messaging_background'",
 		},
 		{
 			"invalid_default_exit.json",
@@ -278,7 +290,7 @@ func TestNewFlow(t *testing.T) {
 
 	// check inspection
 	info := flow.Inspect(session.Assets())
-	infoJSON, _ := jsonx.Marshal(info)
+	infoJSON := jsonx.MustMarshal(info)
 
 	test.AssertEqualJSON(t, []byte(`{
 		"dependencies": [
@@ -337,7 +349,7 @@ func TestEmptyFlow(t *testing.T) {
 	test.AssertEqualJSON(t, []byte(expected), marshaled, "flow definition mismatch")
 
 	info := flow.Inspect(nil)
-	infoJSON, _ := jsonx.Marshal(info)
+	infoJSON := jsonx.MustMarshal(info)
 
 	test.AssertEqualJSON(t, []byte(`{
 		"dependencies": [],
@@ -581,7 +593,7 @@ func TestInspection(t *testing.T) {
 			"615b8a0f-588c-4d20-a05f-363b0b4ce6f4",
 		},
 		{
-			"../../test/testdata/runner/dynamic_groups.json",
+			"../../test/testdata/runner/smart_groups.json",
 			"1b462ce8-983a-4393-b133-e15a0efdb70c",
 		},
 		{

@@ -3,10 +3,10 @@ package types
 import (
 	"fmt"
 
+	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/dates"
-	"github.com/nyaruka/goflow/utils/jsonx"
 )
 
 // XDate is a Gregorian calendar date value.
@@ -38,17 +38,13 @@ func (x XDate) Render() string { return x.Native().String() }
 
 // Format returns the pretty text representation
 func (x XDate) Format(env envs.Environment) string {
-	formatted, _ := x.FormatCustom(env.DateFormat())
+	formatted, _ := x.FormatCustom(env, string(env.DateFormat()))
 	return formatted
 }
 
 // FormatCustom provides customised formatting
-func (x XDate) FormatCustom(format envs.DateFormat) (string, error) {
-	goFormat, err := envs.ToGoDateFormat(string(format), envs.DateOnlyFormatting)
-	if err != nil {
-		return "", err
-	}
-	return x.Native().Format(goFormat), nil
+func (x XDate) FormatCustom(env envs.Environment, layout string) (string, error) {
+	return x.Native().Format(layout, env.DefaultLocale().ToBCP47())
 }
 
 // MarshalJSON is called when a struct containing this type is marshaled

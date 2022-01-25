@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/httpx"
 
 	"github.com/shopspring/decimal"
 )
@@ -55,12 +55,15 @@ func NewClient(httpClient *http.Client, httpRetries *httpx.RetryConfig, accessTo
 	}
 }
 
-// Parse does a parse of the given text
-func (c *Client) Parse(text string) (*ParseResponse, *httpx.Trace, error) {
+// Parse does a parse of the given text in the given language (e.g. pt_br)
+func (c *Client) Parse(text, language string) (*ParseResponse, *httpx.Trace, error) {
 	endpoint := fmt.Sprintf("%s/parse", apiBaseURL)
 
 	form := url.Values{}
 	form.Add("text", text)
+	if language != "" {
+		form.Add("language", language)
+	}
 
 	headers := map[string]string{
 		"Content-Type":  "application/x-www-form-urlencoded",

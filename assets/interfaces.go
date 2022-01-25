@@ -3,8 +3,8 @@ package assets
 import (
 	"encoding/json"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/envs"
-	"github.com/nyaruka/goflow/utils/uuids"
 )
 
 // ChannelUUID is the UUID of a channel
@@ -137,7 +137,7 @@ type Global interface {
 // GroupUUID is the UUID of a group
 type GroupUUID uuids.UUID
 
-// Group is a set of contacts which can be static or dynamic (i.e. based on a query).
+// Group is a set of contacts which can be added to and removed from manually, or based on a query.
 //
 //   {
 //     "uuid": "14782905-81a6-4910-bc9f-93ad287b23c3",
@@ -264,6 +264,7 @@ type TemplateTranslation interface {
 	Content() string
 	Language() envs.Language
 	Country() envs.Country
+	Namespace() string
 	VariableCount() int
 	Channel() ChannelReference
 }
@@ -286,6 +287,19 @@ type Ticketer interface {
 	Type() string
 }
 
+// User is an person who can trigger flows or be assigned tickets etc.
+//
+//   {
+//     "email": "bob@nyaruka.com",
+//     "name": "Bob"
+//   }
+//
+// @asset user
+type User interface {
+	Email() string
+	Name() string
+}
+
 // Source is a source of assets
 type Source interface {
 	Channels() ([]Channel, error)
@@ -299,4 +313,5 @@ type Source interface {
 	Resthooks() ([]Resthook, error)
 	Templates() ([]Template, error)
 	Ticketers() ([]Ticketer, error)
+	Users() ([]User, error)
 }

@@ -3,6 +3,7 @@ package inspect_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/assets/static"
 	"github.com/nyaruka/goflow/envs"
@@ -13,7 +14,6 @@ import (
 	"github.com/nyaruka/goflow/flows/inspect"
 	"github.com/nyaruka/goflow/flows/routers"
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/goflow/utils/jsonx"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,6 +46,7 @@ func TestDependencies(t *testing.T) {
 		flows.NewExtractedReference(node1, action1, nil, envs.NilLanguage, assets.NewLabelReference("31c06b7c-010d-4f91-9590-d3fbdc2fb7ac", "Spam")),
 		flows.NewExtractedReference(node1, action1, nil, envs.NilLanguage, assets.NewTemplateReference("ff958d30-f50e-48ab-a524-37ed1e9620d9", "Welcome")),
 		flows.NewExtractedReference(node1, action1, nil, envs.NilLanguage, assets.NewTicketerReference("fb9cab80-4450-4a9d-ba9b-cb8df40dd233", "Support")),
+		flows.NewExtractedReference(node1, action1, nil, envs.NilLanguage, assets.NewUserReference("jim@nyaruka.com", "Jim")),
 		flows.NewExtractedReference(node2, nil, router2, envs.NilLanguage, assets.NewGlobalReference("org_name", "Org Name")),
 	}
 
@@ -64,7 +65,7 @@ func TestDependencies(t *testing.T) {
 	require.NoError(t, err)
 
 	deps := inspect.NewDependencies(refs, sa)
-	depsJSON, _ := jsonx.Marshal(deps)
+	depsJSON := jsonx.MustMarshal(deps)
 	test.AssertEqualJSON(t, []byte(`[
 		{
 			"missing": true,
@@ -129,6 +130,12 @@ func TestDependencies(t *testing.T) {
 			"name": "Support",
 			"type": "ticketer",
 			"uuid": "fb9cab80-4450-4a9d-ba9b-cb8df40dd233"
+		},
+		{
+			"missing": true,
+			"type": "user",
+			"email": "jim@nyaruka.com",
+			"name": "Jim"
 		}
 	]`), depsJSON, "deps JSON mismatch")
 

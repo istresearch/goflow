@@ -3,10 +3,10 @@ package routers
 import (
 	"encoding/json"
 
+	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/random"
 
 	"github.com/shopspring/decimal"
 )
@@ -29,8 +29,8 @@ func NewRandom(wait flows.Wait, resultName string, categories []flows.Category) 
 }
 
 // Validate validates that the fields on this router are valid
-func (r *RandomRouter) Validate(exits []flows.Exit) error {
-	return r.validate(exits)
+func (r *RandomRouter) Validate(flow flows.Flow, exits []flows.Exit) error {
+	return r.validate(flow, exits)
 }
 
 // Route determines which exit to take from a node
