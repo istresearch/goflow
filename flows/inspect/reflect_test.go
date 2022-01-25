@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nyaruka/goflow/utils/uuids"
+	"github.com/nyaruka/gocommon/uuids"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -119,13 +119,13 @@ func TestWalk(t *testing.T) {
 
 	// or a slice of structs
 	v = reflect.ValueOf([]containerStruct{
-		containerStruct{
+		{
 			embeddedType: embeddedType{Foo: "Hello"},
 			Bar:          "World",
 			Sub:          subType{Zed: "Now"},
 			Slice:        []subType{},
 		},
-		containerStruct{
+		{
 			embeddedType: embeddedType{Foo: "Hola"},
 			Bar:          "Mundo",
 			Sub:          subType{Zed: "Ahora"},

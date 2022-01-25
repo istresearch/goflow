@@ -197,6 +197,11 @@
                     },
                     "status": "active",
                     "results": {}
+                },
+                "history": {
+                    "parent_uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                    "ancestors": 1,
+                    "ancestors_since_input": 1
                 }
             }
         ]
@@ -269,6 +274,7 @@
                         "status": "active",
                         "timezone": "America/Guayaquil",
                         "created_on": "2018-06-20T11:40:30.123456789Z",
+                        "last_seen_on": "2018-10-18T14:20:30.000123456Z",
                         "urns": [
                             "tel:+12065551212?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123",
                             "twitterid:54784326227#nyaruka"
@@ -291,6 +297,11 @@
                     },
                     "status": "active",
                     "results": {}
+                },
+                "history": {
+                    "parent_uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                    "ancestors": 1,
+                    "ancestors_since_input": 0
                 }
             }
         ],
@@ -361,6 +372,7 @@
                         "status": "active",
                         "timezone": "America/Guayaquil",
                         "created_on": "2018-06-20T11:40:30.123456789Z",
+                        "last_seen_on": "2018-10-18T14:20:30.000123456Z",
                         "urns": [
                             "tel:+12065551212?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123",
                             "twitterid:54784326227#nyaruka"
@@ -383,6 +395,11 @@
                     },
                     "status": "active",
                     "results": {}
+                },
+                "history": {
+                    "parent_uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                    "ancestors": 1,
+                    "ancestors_since_input": 0
                 }
             }
         ],
@@ -444,6 +461,7 @@
                         "status": "active",
                         "timezone": "America/Guayaquil",
                         "created_on": "2018-06-20T11:40:30.123456789Z",
+                        "last_seen_on": "2018-10-18T14:20:30.000123456Z",
                         "urns": [
                             "tel:+12065551212?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123",
                             "twitterid:54784326227#nyaruka"
@@ -466,6 +484,11 @@
                     },
                     "status": "active",
                     "results": {}
+                },
+                "history": {
+                    "parent_uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                    "ancestors": 1,
+                    "ancestors_since_input": 0
                 }
             }
         ],

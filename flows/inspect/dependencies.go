@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/utils/jsonx"
 )
 
 type Dependency struct {
@@ -37,7 +37,7 @@ func (d Dependency) MarshalJSON() ([]byte, error) {
 // each dependency is checked to see if it is available or missing.
 func NewDependencies(refs []flows.ExtractedReference, sa flows.SessionAssets) []flows.Dependency {
 	deps := make([]flows.Dependency, 0)
-	depsSeen := make(map[string]*Dependency, 0)
+	depsSeen := make(map[string]*Dependency)
 
 	for _, er := range refs {
 		key := fmt.Sprintf("%s:%s", er.Reference.Type(), er.Reference.Identity())
@@ -87,6 +87,8 @@ func CheckReference(sa flows.SessionAssets, ref assets.Reference) bool {
 		return sa.Templates().Get(typed.UUID) != nil
 	case *assets.TicketerReference:
 		return sa.Ticketers().Get(typed.UUID) != nil
+	case *assets.UserReference:
+		return sa.Users().Get(typed.Email) != nil
 	default:
 		panic(fmt.Sprintf("unknown dependency type reference: %T", ref))
 	}

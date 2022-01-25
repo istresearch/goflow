@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/flows/definition"
 	"github.com/nyaruka/goflow/mobile"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +38,7 @@ func TestMobileBindings(t *testing.T) {
 	langs := mobile.NewStringSlice(2)
 	langs.Add("eng")
 	langs.Add("fra")
-	environment, err := mobile.NewEnvironment("DD-MM-YYYY", "tt:mm", "Africa/Kigali", "eng", langs, "RW", "none")
+	environment, err := mobile.NewEnvironment("DD-MM-YYYY", "tt:mm", "Africa/Kigali", langs, "RW", "none")
 	require.NoError(t, err)
 
 	// and create a new session assets

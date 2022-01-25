@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/dates"
 	"github.com/nyaruka/goflow/utils/i18n"
-	"github.com/nyaruka/goflow/utils/uuids"
 )
 
 // describes the location of a piece of extracted text
@@ -110,7 +110,7 @@ func extractFromProperty(translationsLanguage envs.Language, flow flows.Flow, uu
 		if text != "" {
 			extracted = append(extracted, &localizedText{
 				Locations: []textLocation{
-					textLocation{
+					{
 						Flow:     flow,
 						UUID:     uuid,
 						Property: property,
@@ -195,7 +195,7 @@ func poFromExtracted(sources []flows.Flow, initialComment string, lang envs.Lang
 		flowUUIDs[i] = string(f.UUID())
 	}
 
-	header := i18n.NewPOHeader(initialComment, dates.Now(), envs.NewLocale(lang, envs.NilCountry).ToISO639_2())
+	header := i18n.NewPOHeader(initialComment, dates.Now(), envs.NewLocale(lang, envs.NilCountry).ToBCP47())
 	header.Custom["Source-Flows"] = strings.Join(flowUUIDs, "; ")
 	header.Custom["Language-3"] = string(lang)
 	po := i18n.NewPO(header)
@@ -258,8 +258,8 @@ func (u *TranslationUpdate) String() string {
 // CalculateFlowUpdates calculates what updates should be made to translations in the given flows
 func CalculateFlowUpdates(po *i18n.PO, translationsLanguage envs.Language, targets ...flows.Flow) []*TranslationUpdate {
 	localized := findLocalizedText(translationsLanguage, nil, targets)
-	localizedByContext := make(map[string][]*localizedText, 0)
-	localizedByMsgID := make(map[string][]*localizedText, 0)
+	localizedByContext := make(map[string][]*localizedText)
+	localizedByMsgID := make(map[string][]*localizedText)
 
 	for _, lt := range localized {
 		context := lt.Locations[0].MsgContext()

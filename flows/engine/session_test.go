@@ -3,9 +3,13 @@ package engine_test
 import (
 	"encoding/json"
 	"io/ioutil"
+	"sort"
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/assets/static"
 	"github.com/nyaruka/goflow/envs"
@@ -14,10 +18,8 @@ import (
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
+	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/goflow/utils/dates"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -130,6 +132,7 @@ func TestReadWithMissingAssets(t *testing.T) {
 
 	// try to read it back but with no assets
 	sessionAssets, err := engine.NewSessionAssets(session.Environment(), static.NewEmptySource(), nil)
+	require.NoError(t, err)
 
 	missingAssets := make([]assets.Reference, 0)
 	missing := func(a assets.Reference, err error) { missingAssets = append(missingAssets, a) }
@@ -137,12 +140,74 @@ func TestReadWithMissingAssets(t *testing.T) {
 	eng := engine.NewBuilder().Build()
 	_, err = eng.ReadSession(sessionAssets, sessionJSON, missing)
 	require.NoError(t, err)
-	assert.Equal(t, 16, len(missingAssets))
-	assert.Equal(t, assets.NewChannelReference(assets.ChannelUUID("57f1078f-88aa-46f4-a59a-948a5739c03d"), ""), missingAssets[0])
-	assert.Equal(t, assets.NewGroupReference(assets.GroupUUID("b7cf0d83-f1c9-411c-96fd-c511a4cfa86d"), "Testers"), missingAssets[1])
-	assert.Equal(t, assets.NewGroupReference(assets.GroupUUID("4f1f98fc-27a7-4a69-bbdb-24744ba739a9"), "Males"), missingAssets[2])
-	assert.Equal(t, assets.NewFlowReference(assets.FlowUUID("50c3706e-fedb-42c0-8eab-dda3335714b7"), "Registration"), missingAssets[13])
-	assert.Equal(t, assets.NewFlowReference(assets.FlowUUID("b7cf0d83-f1c9-411c-96fd-c511a4cfa86d"), "Collect Age"), missingAssets[14])
+
+	refs := make([]string, len(missingAssets))
+	for i := range missingAssets {
+		refs[i] = missingAssets[i].String()
+	}
+
+	// ordering isn't deterministic so sort A-Z
+	sort.Strings(refs)
+
+	assert.Equal(t, []string{
+		"channel[uuid=57f1078f-88aa-46f4-a59a-948a5739c03d,name=My Android Phone]",
+		"channel[uuid=57f1078f-88aa-46f4-a59a-948a5739c03d,name=]",
+		"channel[uuid=57f1078f-88aa-46f4-a59a-948a5739c03d,name=]",
+		"field[key=activation_token,name=]",
+		"field[key=activation_token,name=]",
+		"field[key=age,name=]",
+		"field[key=gender,name=]",
+		"field[key=gender,name=]",
+		"field[key=join_date,name=]",
+		"field[key=join_date,name=]",
+		"flow[uuid=50c3706e-fedb-42c0-8eab-dda3335714b7,name=Registration]",
+		"flow[uuid=b7cf0d83-f1c9-411c-96fd-c511a4cfa86d,name=Collect Age]",
+		"group[uuid=4f1f98fc-27a7-4a69-bbdb-24744ba739a9,name=Males]",
+		"group[uuid=4f1f98fc-27a7-4a69-bbdb-24744ba739a9,name=Males]",
+		"group[uuid=b7cf0d83-f1c9-411c-96fd-c511a4cfa86d,name=Testers]",
+		"group[uuid=b7cf0d83-f1c9-411c-96fd-c511a4cfa86d,name=Testers]",
+		"ticketer[uuid=19dc6346-9623-4fe4-be80-538d493ecdf5,name=Support Tickets]",
+		"ticketer[uuid=19dc6346-9623-4fe4-be80-538d493ecdf5,name=Support Tickets]",
+		"ticketer[uuid=19dc6346-9623-4fe4-be80-538d493ecdf5,name=Support Tickets]",
+		"ticketer[uuid=19dc6346-9623-4fe4-be80-538d493ecdf5,name=Support Tickets]",
+		"user[email=bob@nyaruka.com,name=Bob]",
+		"user[email=bob@nyaruka.com,name=Bob]",
+	}, refs)
+}
+
+func TestQueryBasedGroupReevaluationOnTrigger(t *testing.T) {
+	assetsJSON, err := ioutil.ReadFile("testdata/smart_groups.json")
+	require.NoError(t, err)
+
+	sa, err := test.CreateSessionAssets(assetsJSON, "")
+	require.NoError(t, err)
+
+	// contact is in wrong groups
+	contact, err := flows.ReadContact(sa, []byte(`{
+		"uuid": "6d116680-eab9-460a-9c6e-1f05d3c5b5d6",
+		"created_on": "2018-06-20T11:40:30.123456789-00:00",
+        "groups": [
+            {"uuid": "047de1c9-9189-4f4c-aa04-bff0a4c2efb6", "name": "Males"}
+        ],
+        "fields": {
+            "gender": {
+                "text": "Female"
+			}
+		}
+	}`), assets.PanicOnMissing)
+	require.NoError(t, err)
+
+	env := envs.NewBuilder().Build()
+	trigger := triggers.NewBuilder(env, assets.NewFlowReference("1b462ce8-983a-4393-b133-e15a0efdb70c", ""), contact).Manual().Build()
+	eng := engine.NewBuilder().Build()
+
+	session, sprint, err := eng.NewSession(sa, trigger)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, len(sprint.Events()))
+	assert.Equal(t, "contact_groups_changed", sprint.Events()[0].Type())
+	assert.Equal(t, 1, session.Contact().Groups().Count())
+	assert.Equal(t, "Females", session.Contact().Groups().All()[0].Name())
 }
 
 func TestRunResuming(t *testing.T) {
@@ -273,4 +338,49 @@ func TestCurrentContext(t *testing.T) {
 	flowContext, _ = runContext.(*types.XObject).Get("flow")
 	flowName, _ = flowContext.(*types.XObject).Get("name")
 	assert.Equal(t, types.NewXText("Parent Flow"), flowName)
+}
+
+func TestSessionHistory(t *testing.T) {
+	env := envs.NewBuilder().Build()
+
+	source, err := static.NewSource([]byte(`{
+		"flows": [
+			{
+				"uuid": "5472a1c3-63e1-484f-8485-cc8ecb16a058",
+				"name": "Empty",
+				"spec_version": "13.1",
+				"language": "eng",
+				"type": "messaging",
+				"nodes": []
+			}
+		]
+	}`))
+	require.NoError(t, err)
+
+	sa, err := engine.NewSessionAssets(env, source, nil)
+	require.NoError(t, err)
+
+	flow := assets.NewFlowReference("5472a1c3-63e1-484f-8485-cc8ecb16a058", "Inception")
+	contact := flows.NewEmptyContact(sa, "Bob", envs.Language("eng"), nil)
+
+	// trigger session manually which will have no history
+	eng := engine.NewBuilder().Build()
+	session1, _, err := eng.NewSession(sa, triggers.NewBuilder(env, flow, contact).Manual().Build())
+	require.NoError(t, err)
+
+	assert.Equal(t, flows.EmptyHistory, session1.History())
+
+	// trigger another session from that session
+	runSummary := session1.Runs()[0].Snapshot()
+	runSummaryJSON := jsonx.MustMarshal(runSummary)
+	history := flows.NewChildHistory(session1)
+
+	session2, _, err := eng.NewSession(sa, triggers.NewBuilder(env, flow, contact).FlowAction(history, runSummaryJSON).Build())
+	require.NoError(t, err)
+
+	assert.Equal(t, &flows.SessionHistory{
+		ParentUUID:          session1.UUID(),
+		Ancestors:           1,
+		AncestorsSinceInput: 1,
+	}, session2.History())
 }

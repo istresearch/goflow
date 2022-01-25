@@ -72,6 +72,23 @@
         ]
     },
     {
+        "description": "Error event if final URN is invalid",
+        "action": {
+            "type": "add_contact_urn",
+            "uuid": "ad154980-7bf7-4ab8-8728-545fd6378912",
+            "scheme": "telegram",
+            "path": "qwerty"
+        },
+        "events": [
+            {
+                "type": "error",
+                "created_on": "2018-10-18T14:20:30.000123456Z",
+                "step_uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "text": "'telegram:qwerty' is not valid URN"
+            }
+        ]
+    },
+    {
         "description": "NOOP if URN already exists on contact",
         "action": {
             "type": "add_contact_urn",
@@ -108,6 +125,7 @@
             "status": "active",
             "timezone": "America/Guayaquil",
             "created_on": "2018-06-20T11:40:30.123456789Z",
+            "last_seen_on": "2018-10-18T14:20:30.000123456Z",
             "urns": [
                 "tel:+12065551212?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123",
                 "twitterid:54784326227#nyaruka",
@@ -157,6 +175,7 @@
             "status": "active",
             "timezone": "America/Guayaquil",
             "created_on": "2018-06-20T11:40:30.123456789Z",
+            "last_seen_on": "2018-10-18T14:20:30.000123456Z",
             "urns": [
                 "tel:+12065551212?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123",
                 "twitterid:54784326227#nyaruka",

@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
@@ -11,9 +14,6 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers/waits"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/dates"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/pkg/errors"
 )
@@ -96,7 +96,7 @@ func (r *baseRouter) EnumerateLocalizables(include func(uuids.UUID, string, []st
 	}
 }
 
-func (r *baseRouter) validate(exits []flows.Exit) error {
+func (r *baseRouter) validate(flow flows.Flow, exits []flows.Exit) error {
 	// check wait timeout category is valid
 	if r.AllowTimeout() && !r.isValidCategory(r.wait.Timeout().CategoryUUID()) {
 		return errors.Errorf("timeout category %s is not a valid category", r.wait.Timeout().CategoryUUID())
@@ -107,6 +107,10 @@ func (r *baseRouter) validate(exits []flows.Exit) error {
 		if c.ExitUUID() != "" && !r.isValidExit(c.ExitUUID(), exits) {
 			return errors.Errorf("category exit %s is not a valid exit", c.ExitUUID())
 		}
+	}
+
+	if r.wait != nil && !flow.Type().Allows(r.wait) {
+		return errors.Errorf("wait type '%s' is not allowed in a flow of type '%s'", r.wait.Type(), flow.Type())
 	}
 
 	return nil
@@ -129,8 +133,6 @@ func (r *baseRouter) isValidExit(uuid flows.ExitUUID, exits []flows.Exit) bool {
 	}
 	return false
 }
-
-type routerFunc func(run flows.FlowRun, step flows.Step, logEvent flows.EventCallback) (flows.ExitUUID, error)
 
 // RouteTimeout routes in the case that this router's wait timed out
 func (r *baseRouter) RouteTimeout(run flows.FlowRun, step flows.Step, logEvent flows.EventCallback) (flows.ExitUUID, error) {

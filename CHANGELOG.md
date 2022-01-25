@@ -1,3 +1,323 @@
+v0.126.1
+----------
+ * Update locale files
+
+v0.126.0
+----------
+ * Use latest gocommon, replace all nulls and escaped nulls when parsing bodies as JSON
+
+v0.125.2
+----------
+ * Add assignee (optional) to ticket_opened events
+ * Cleanup from linter suggestions
+
+v0.125.1
+----------
+ * Strip out invalid UTF-8 from webhook responses before trying to convert to JSON
+
+v0.125.0
+----------
+ * Update to latest gocommon
+
+v0.124.4
+----------
+ * Make users more like contacts in expressions by giving them an always non-empty default and a first_name property
+
+v0.124.3
+----------
+ * Fix inspecting user dependencies in flows
+
+v0.124.2
+----------
+ * Change default property of user objects in expressions to be the name to match contacts
+
+v0.124.1
+----------
+ * Fix remove_first_word when input contains non-ASCII
+
+v0.124.0
+----------
+ * Add User assets and use for Ticket.Assignee and Trigger.user
+
+v0.123.0
+----------
+ * Add SUM() excellent function
+ * Remove default_language from envs and usa first item of allowed_languages as the default
+
+v0.122.0
+----------
+ * Allow build failing on codecov uploads again
+ * Get rid of ticket references
+
+v0.121.0
+----------
+ * Don't generate separate completion/functions doc files
+
+v0.120.1
+----------
+ * Tweak test.AssertEqualJSON to take msgAndArgs param like asserts library
+
+v0.120.0
+----------
+ * Add ticket as property to @trigger in context
+ * Add new ticket type trigger with a closed event
+
+v0.119.0
+----------
+ * Remove legacy_extra issue type
+
+v0.118.2
+----------
+ * Add @ticket to the root context as the last opened ticket
+
+v0.118.1
+----------
+ * Add way to create new ticket reference instances and add contact tickets to editor autocompletion
+
+v0.118.0
+----------
+ * Add contact tickets to expression context
+
+v0.117.0
+----------
+ * Add WA template translations namespace
+
+v0.116.1
+----------
+ * Use standard hypenated BCP47 locale codes consistently
+
+v0.116.0
+----------
+ * Test on go 1.16.x
+ * Update to latest gocommon datefmt and pass locale to all date formatting calls
+
+v0.115.2
+----------
+ * Fix dtone API endpoint URL and use external IDs
+
+v0.115.1
+----------
+ * Fix sometimes retrying successful SMTP sends
+
+v0.115.0
+----------
+ * Add support for retrying SMTP sends
+
+v0.114.0
+----------
+ * Fully implement airtime service using new DT One API
+
+v0.113.3
+----------
+ * Fix resuming a parent run when flow is missing
+
+v0.113.2
+----------
+ * Add last missing translations for es and pt-BR
+
+v0.113.1
+----------
+ * Update Spanish locale and gocommon dependency
+
+v0.113.0
+----------
+ * Don't blow up building context if node is null
+ * Add contact language to resthook payload
+
+v0.112.2
+----------
+ * Add accessor for URN on ActivatedDialWait
+
+v0.112.1
+----------
+ * Log error event and skip when attachment is longer than 2048 limit
+
+v0.112.0
+----------
+ * Include resume and node in migration expression parsing
+ * Add dial types of waits and resumes
+
+v0.111.0
+----------
+ * Move to ElasticSearch v7 clients (backwards incompatible change)
+
+v0.110.2
+----------
+ * Remove forward_ivr action and ivr_forwarded event
+
+v0.110.1
+----------
+ * Spanish translations from transifex
+
+v0.110.0
+----------
+ * Combine the completion.json and functions.json editor support files into a single editor.json file
+ * Remove generated docs from repo
+
+v0.109.4
+----------
+ * Fix release workflow
+
+v0.109.3
+----------
+ * Fix release workflow
+
+v0.109.2
+----------
+ * Don't use fuzzy entries in po files
+
+v0.109.1
+----------
+ * Add forward_ivr action and ivr_forwarded event
+
+v0.109.0
+----------
+ * Add @node.(uuid|visit_count) to context
+
+v0.108.0
+----------
+ * Rename messaging_passive to messaging_background
+
+v0.107.2
+----------
+ * Disallow labeling actions in passive flows
+
+v0.107.1
+----------
+ * Add float64 workaround for exponent expressions with non-integer exponents
+
+v0.107.0
+----------
+ * Add new flow type for passive messaging flows
+ * Update to gocommon v1.7.1 to get fix for phone number parsing
+
+v0.106.3
+----------
+ * Engine evaluator for contact sql should support != x for number and datetime values
+
+v0.106.2
+----------
+ * Update to latest gocommon
+
+v0.106.1
+----------
+ * URN and channel modifiers should error with invalid URNs and channels
+
+v0.106.0
+----------
+ * Getting channel for URN should always consider the role on the channels
+ * Update to latest gocommon which adds rocketchat scheme
+ * SetPreferredChannel only when the channel has the send role
+
+v0.105.5
+----------
+ * Support sorting contacts by last seen on attribute
+
+v0.105.4
+----------
+ * Add support for Bengali numerals in number tests
+
+v0.105.3
+----------
+ * Add support for Eastern Arabic numerals in number tests
+
+v0.105.2
+----------
+ * Clear a run's expiration when it exits
+ * Unwind accumulated run expirations as child runs complete
+ * Include country in msg templating on msg_created events
+
+v0.105.1
+----------
+ * Update to latest gocommon v1.5.3
+
+v0.105.0
+----------
+ * Bump some deps, test on go 1.15 and fix bug found by 1.15 compiler
+
+v0.104.1
+----------
+ * Update to gocommon v1.5.1
+
+v0.104.0
+----------
+ * Use dummy value to avoid sending empty emails
+ * Rework smtpx package for sending emails in places besides flows
+ * Don't parse numbers in scientific notation
+
+v0.103.1
+----------
+ * Update to latest gocommon v1.5.0
+ * Run environment's DefaultLanguage and DefaultLocale methods should use contact language
+
+v0.103.0
+----------
+ * Update to latest gocommon
+ * Update terminology around groups with queries
+
+v0.102.1
+----------
+ * Add archived contact status
+
+v0.102.0
+----------
+ * Update to latest gocommon
+
+v0.101.2
+----------
+ * Add empty localizations for all the languages used in RapidPro
+
+v0.101.1
+----------
+ * Fix test
+
+v0.101.0
+----------
+ * Use language codes (e.g. en-us) rather than locale names (en_US) for docs directories
+
+v0.100.1
+----------
+ * Add completed pt_BR translation
+
+v0.100.0
+----------
+ * Add last_seen_on to contacts and expose in expressions and queries
+
+v0.99.0
+----------
+ * Rework elastic query generation so that all errors are caught at parsing stage
+ * Allow URN inequality in elastic searches
+
+v0.98.0
+----------
+ * Rework error handling in contactql so more errors are caught during parsing and have associated codes
+
+v0.97.0
+----------
+ * Re-add classifier_called events for backward compatibility
+ * Groups modifier should generate error if asked to operate on blocked or stopped contact
+ * Move modifiers package out of actions package
+ * ContactQL parser errors should contain more info
+
+v0.96.0
+----------
+ * Reorganize validation code so utils doesn't have to know about tags defined higher up
+ * Clone the test session during doc generation so actions always start with the same session
+ * Add action to change contact status
+ * Add historical information to triggers about the session that triggered them and use to prevent looping
+
+v0.95.1
+----------
+ * Improve documentation of call_webhook action
+
+v0.95.0
+----------
+ * Use latest wit.ai API version
+ * Allow searching with values containing single quotes
+ * Add user and origin fields to manual triggers
+ * Add builder for triggers
+ * Pass language to bothub API calls
+
 v0.94.2
 ----------
  * Use jsonx.Marshal consistently

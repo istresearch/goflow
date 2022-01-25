@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
@@ -14,7 +15,6 @@ import (
 	"github.com/nyaruka/goflow/flows/runs"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/jsonx"
 
 	"github.com/pkg/errors"
 )
@@ -30,15 +30,16 @@ type session struct {
 	assets flows.SessionAssets
 
 	// state which is maintained between engine calls
-	uuid    flows.SessionUUID
-	type_   flows.FlowType
-	env     envs.Environment
-	trigger flows.Trigger
-	contact *flows.Contact
-	runs    []flows.FlowRun
-	status  flows.SessionStatus
-	wait    flows.ActivatedWait
-	input   flows.Input
+	uuid          flows.SessionUUID
+	type_         flows.FlowType
+	env           envs.Environment
+	trigger       flows.Trigger
+	currentResume flows.Resume
+	contact       *flows.Contact
+	runs          []flows.FlowRun
+	status        flows.SessionStatus
+	wait          flows.ActivatedWait
+	input         flows.Input
 
 	// state which is temporary to each call
 	batchStart bool
@@ -51,6 +52,7 @@ type session struct {
 
 func (s *session) Assets() flows.SessionAssets { return s.assets }
 func (s *session) Trigger() flows.Trigger      { return s.trigger }
+func (s *session) CurrentResume() flows.Resume { return s.currentResume }
 
 func (s *session) UUID() flows.SessionUUID { return s.uuid }
 
@@ -63,8 +65,15 @@ func (s *session) SetEnvironment(env envs.Environment) { s.env = env }
 func (s *session) Contact() *flows.Contact           { return s.contact }
 func (s *session) SetContact(contact *flows.Contact) { s.contact = contact }
 
-func (s *session) Input() flows.Input         { return s.input }
-func (s *session) SetInput(input flows.Input) { s.input = input }
+func (s *session) Input() flows.Input { return s.input }
+func (s *session) SetInput(input flows.Input) {
+	s.input = input
+
+	// if we have a contact, update their last seen date
+	if input != nil && s.contact != nil {
+		s.contact.SetLastSeenOn(input.CreatedOn())
+	}
+}
 
 func (s *session) BatchStart() bool { return s.batchStart }
 
@@ -133,6 +142,14 @@ func (s *session) waitingRun() flows.FlowRun {
 	return nil
 }
 
+func (s *session) History() *flows.SessionHistory {
+	history := s.trigger.History()
+	if history != nil {
+		return history
+	}
+	return flows.EmptyHistory
+}
+
 func (s *session) Engine() flows.Engine { return s.engine }
 
 //------------------------------------------------------------------------------------------
@@ -150,6 +167,9 @@ func (s *session) start(trigger flows.Trigger) (flows.Sprint, error) {
 	if err := s.trigger.Initialize(s, sprint.LogEvent); err != nil {
 		return sprint, err
 	}
+
+	// ensure groups are correct
+	s.ensureQueryBasedGroups(sprint.LogEvent)
 
 	// off to the races...
 	if err := s.continueUntilWait(sprint, nil, noDestination, nil, trigger); err != nil {
@@ -226,6 +246,7 @@ func (s *session) tryToResume(sprint flows.Sprint, waitingRun flows.FlowRun, res
 	}
 	s.wait = nil
 	s.status = flows.SessionStatusActive
+	s.currentResume = resume
 
 	logEvent := func(e flows.Event) {
 		waitingRun.LogEvent(step, e)
@@ -233,9 +254,10 @@ func (s *session) tryToResume(sprint flows.Sprint, waitingRun flows.FlowRun, res
 	}
 
 	// resumes are allowed to make state changes
-	if err := resume.Apply(waitingRun, logEvent); err != nil {
-		return err
-	}
+	resume.Apply(waitingRun, logEvent)
+
+	// ensure groups are correct
+	s.ensureQueryBasedGroups(logEvent)
 
 	_, isTimeout := resume.(*resumes.WaitTimeoutResume)
 
@@ -316,7 +338,7 @@ func (s *session) continueUntilWait(sprint flows.Sprint, currentRun flows.FlowRu
 				childRun := currentRun
 				currentRun = parentRun
 
-				// as long as we didn't error, we can try to resume it
+				// as long as we didn't fail, we can try to resume it
 				if childRun.Status() != flows.RunStatusFailed {
 					// if flow for this run is a missing asset, we have a problem
 					if currentRun.Flow() == nil {
@@ -327,7 +349,7 @@ func (s *session) continueUntilWait(sprint flows.Sprint, currentRun flows.FlowRu
 						failure(sprint, currentRun, step, errors.Wrapf(err, "can't resume run as node no longer exists"))
 					}
 				} else {
-					// if we did error then that needs to bubble back up through the run hierarchy
+					// if we did fail then that needs to bubble back up through the run hierarchy
 					step, _, _ := currentRun.PathLocation()
 					failure(sprint, currentRun, step, errors.Errorf("child run for flow '%s' ended in error, ending execution", childRun.Flow().UUID()))
 				}
@@ -472,6 +494,25 @@ func (s *session) pickNodeExit(sprint flows.Sprint, run flows.FlowRun, node flow
 
 	// no exit? return no destination
 	return noDestination, nil
+}
+
+// ensures that our session contact is in the correct query based groups as as far as the engine is concerned
+func (s *session) ensureQueryBasedGroups(logEvent flows.EventCallback) {
+	if s.contact == nil {
+		return
+	}
+
+	added, removed, errors := s.contact.ReevaluateQueryBasedGroups(s.Environment())
+
+	// add error event for each group we couldn't re-evaluate
+	for _, err := range errors {
+		logEvent(events.NewError(err))
+	}
+
+	// add groups changed event for the groups we were added/removed to/from
+	if len(added) > 0 || len(removed) > 0 {
+		logEvent(events.NewContactGroupsChanged(added, removed))
+	}
 }
 
 const noDestination = flows.NodeUUID("")

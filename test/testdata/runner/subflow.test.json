@@ -76,7 +76,6 @@
                         "eng"
                     ],
                     "date_format": "YYYY-MM-DD",
-                    "default_language": "eng",
                     "max_value_length": 640,
                     "number_format": {
                         "decimal_symbol": ".",
@@ -205,7 +204,6 @@
                             "eng"
                         ],
                         "date_format": "YYYY-MM-DD",
-                        "default_language": "eng",
                         "max_value_length": 640,
                         "number_format": {
                             "decimal_symbol": ".",
@@ -232,7 +230,7 @@
         {
             "events": [
                 {
-                    "created_on": "2018-07-06T12:30:21.123456789Z",
+                    "created_on": "2018-07-06T12:30:22.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Nexmo",
@@ -269,7 +267,7 @@
                     "type": "msg_created"
                 },
                 {
-                    "created_on": "2018-07-06T12:30:33.123456789Z",
+                    "created_on": "2018-07-06T12:30:35.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Android Channel",
@@ -297,6 +295,7 @@
                     },
                     "id": 1234567,
                     "language": "eng",
+                    "last_seen_on": "2000-01-01T00:00:00Z",
                     "name": "Ben Haggerty",
                     "status": "active",
                     "timezone": "America/Guayaquil",
@@ -312,7 +311,6 @@
                         "eng"
                     ],
                     "date_format": "YYYY-MM-DD",
-                    "default_language": "eng",
                     "max_value_length": 640,
                     "number_format": {
                         "decimal_symbol": ".",
@@ -363,7 +361,7 @@
                                 "type": "flow_entered"
                             },
                             {
-                                "created_on": "2018-07-06T12:30:33.123456789Z",
+                                "created_on": "2018-07-06T12:30:35.123456789Z",
                                 "msg": {
                                     "channel": {
                                         "name": "Android Channel",
@@ -377,13 +375,13 @@
                                 "type": "msg_created"
                             }
                         ],
-                        "exited_on": "2018-07-06T12:30:35.123456789Z",
-                        "expires_on": "2018-07-06T12:30:18.123456789Z",
+                        "exited_on": "2018-07-06T12:30:37.123456789Z",
+                        "expires_on": null,
                         "flow": {
                             "name": "Parent Flow",
                             "uuid": "76f0a02f-3b75-4b86-9064-e9195e1b3a02"
                         },
-                        "modified_on": "2018-07-06T12:30:35.123456789Z",
+                        "modified_on": "2018-07-06T12:30:37.123456789Z",
                         "path": [
                             {
                                 "arrived_on": "2018-07-06T12:30:03.123456789Z",
@@ -392,7 +390,7 @@
                                 "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094"
                             },
                             {
-                                "arrived_on": "2018-07-06T12:30:32.123456789Z",
+                                "arrived_on": "2018-07-06T12:30:34.123456789Z",
                                 "exit_uuid": "9b13f6ac-5257-4cec-8d5c-545ba85bc832",
                                 "node_uuid": "c8380f24-7524-4340-9d38-db8a131d2b70",
                                 "uuid": "b88ce93d-4360-4455-a691-235cbe720980"
@@ -424,7 +422,7 @@
                                 "type": "msg_wait"
                             },
                             {
-                                "created_on": "2018-07-06T12:30:21.123456789Z",
+                                "created_on": "2018-07-06T12:30:22.123456789Z",
                                 "msg": {
                                     "channel": {
                                         "name": "Nexmo",
@@ -462,7 +460,7 @@
                             }
                         ],
                         "exited_on": "2018-07-06T12:30:31.123456789Z",
-                        "expires_on": "2018-07-06T12:30:18.123456789Z",
+                        "expires_on": null,
                         "flow": {
                             "name": "Child flow",
                             "uuid": "a8d27b94-d3d0-4a96-8074-0f162f342195"
@@ -527,7 +525,6 @@
                             "eng"
                         ],
                         "date_format": "YYYY-MM-DD",
-                        "default_language": "eng",
                         "max_value_length": 640,
                         "number_format": {
                             "decimal_symbol": ".",
@@ -593,7 +590,6 @@
                 "eng"
             ],
             "date_format": "YYYY-MM-DD",
-            "default_language": "eng",
             "time_format": "hh:mm",
             "timezone": "America/Los_Angeles"
         },

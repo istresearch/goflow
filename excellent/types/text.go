@@ -5,9 +5,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/jsonx"
 )
 
 // XText is a string of characters.
@@ -57,23 +57,6 @@ func (x XText) Equals(other XText) bool {
 // Compare compares this string to another
 func (x XText) Compare(other XText) int {
 	return strings.Compare(x.Native(), other.Native())
-}
-
-// Slice returns a substring of this text
-func (x XText) Slice(start, end int) XText {
-	length := x.Length()
-	if start < 0 {
-		start = 0
-	}
-	if end > length {
-		end = length
-	}
-	if start >= length || end < start {
-		return XTextEmpty
-	}
-
-	runes := []rune(x.native)[start:end]
-	return NewXText(string(runes))
 }
 
 // Length returns the length of this string

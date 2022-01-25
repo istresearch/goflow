@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestToISO639_2(t *testing.T) {
+func TestToBCP47(t *testing.T) {
 	tests := []struct {
-		lang     envs.Language
-		country  envs.Country
-		iso639_2 string
+		lang    envs.Language
+		country envs.Country
+		bcp47   string
 	}{
 		{envs.NilLanguage, envs.NilCountry, ``},
 		{envs.Language(`cat`), envs.NilCountry, `ca`},
@@ -32,12 +32,13 @@ func TestToISO639_2(t *testing.T) {
 		{envs.Language(`spa`), envs.Country(`EC`), `es-EC`},
 		{envs.Language(`zho`), envs.Country(`CN`), `zh-CN`},
 
-		{envs.Language(`yue`), envs.NilCountry, ``},
+		{envs.Language(`yue`), envs.NilCountry, ``}, // has no 2-letter represention
 		{envs.Language(`und`), envs.NilCountry, ``},
 		{envs.Language(`mul`), envs.NilCountry, ``},
+		{envs.Language(`xyz`), envs.NilCountry, ``}, // is not a language
 	}
 
 	for _, tc := range tests {
-		assert.Equal(t, tc.iso639_2, envs.NewLocale(tc.lang, tc.country).ToISO639_2())
+		assert.Equal(t, tc.bcp47, envs.NewLocale(tc.lang, tc.country).ToBCP47())
 	}
 }

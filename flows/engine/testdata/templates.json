@@ -102,7 +102,7 @@
     },
     {
         "template": "@urns",
-        "output": "{ext: , facebook: , fcm: , freshchat: , jiochat: , line: , mailto: mailto:foo@bar.com, tel: tel:+12024561111, telegram: , twitter: , twitterid: twitterid:54784326227#nyaruka, viber: , vk: , wechat: , whatsapp: }"
+        "output": "{discord: , ext: , facebook: , fcm: , freshchat: , jiochat: , line: , mailto: mailto:foo@bar.com, rocketchat: , tel: tel:+12024561111, telegram: , twitter: , twitterid: twitterid:54784326227#nyaruka, viber: , vk: , wechat: , whatsapp: }"
     },
     {
         "template": "@urns.tel",
@@ -170,7 +170,7 @@
     },
     {
         "template": "@(count(contact.fields))",
-        "output": "5"
+        "output": "6"
     },
     {
         "template": "@fields",
@@ -202,7 +202,7 @@
     },
     {
         "template": "@(count(fields))",
-        "output": "5"
+        "output": "6"
     },
     {
         "template": "@input",
@@ -379,12 +379,25 @@
             "age": 23,
             "gender": "Male",
             "join_date": "2017-12-02T00:00:00.000000-02:00",
-            "not_set": null
+            "not_set": null,
+            "state": null
         }
     },
     {
         "template": "@(json(contact.fields.age))",
         "output": "23"
+    },
+    {
+        "template": "@(json(contact.tickets))",
+        "output": "[{\"assignee\":null,\"body\":\"I have a problem\",\"subject\":\"Old ticket\",\"uuid\":\"e5f5a9b0-1c08-4e56-8f5c-92e00bc3cf52\"},{\"assignee\":{\"email\":\"bob@nyaruka.com\",\"first_name\":\"Bob\",\"name\":\"Bob\"},\"body\":\"What day is it?\",\"subject\":\"Question\",\"uuid\":\"78d1fe0d-7e39-461e-81c3-a6a25f15ed69\"}]"
+    },
+    {
+        "template": "@ticket",
+        "output": "{assignee: Bob, body: What day is it?, subject: Question, uuid: 78d1fe0d-7e39-461e-81c3-a6a25f15ed69}"
+    },
+    {
+        "template": "@(json(ticket))",
+        "output": "{\"assignee\":{\"email\":\"bob@nyaruka.com\",\"first_name\":\"Bob\",\"name\":\"Bob\"},\"body\":\"What day is it?\",\"subject\":\"Question\",\"uuid\":\"78d1fe0d-7e39-461e-81c3-a6a25f15ed69\"}"
     },
     {
         "template": "@(json(contact))",
@@ -400,7 +413,8 @@
                 "age": 23,
                 "gender": "Male",
                 "join_date": "2017-12-02T00:00:00.000000-02:00",
-                "not_set": null
+                "not_set": null,
+                "state": null
             },
             "first_name": "Ryan",
             "groups": [
@@ -415,7 +429,26 @@
             ],
             "id": "1234567",
             "language": "eng",
+            "last_seen_on": "2017-12-31T11:35:10.035757-02:00",
             "name": "Ryan Lewis",
+            "tickets": [
+                {
+                    "assignee": null,
+                    "body": "I have a problem",
+                    "subject": "Old ticket",
+                    "uuid": "e5f5a9b0-1c08-4e56-8f5c-92e00bc3cf52"
+                },
+                {
+                    "assignee": {
+                        "email": "bob@nyaruka.com",
+                        "first_name": "Bob",
+                        "name": "Bob"
+                    },
+                    "body": "What day is it?",
+                    "subject": "Question",
+                    "uuid": "78d1fe0d-7e39-461e-81c3-a6a25f15ed69"
+                }
+            ],
             "timezone": "America/Guayaquil",
             "urn": "tel:+12024561111",
             "urns": [
@@ -461,7 +494,8 @@
                     "age": 23,
                     "gender": "Male",
                     "join_date": "2017-12-02T00:00:00.000000-02:00",
-                    "not_set": null
+                    "not_set": null,
+                    "state": null
                 },
                 "first_name": "Ryan",
                 "groups": [
@@ -476,7 +510,26 @@
                 ],
                 "id": "1234567",
                 "language": "eng",
+                "last_seen_on": "2017-12-31T11:35:10.035757-02:00",
                 "name": "Ryan Lewis",
+                "tickets": [
+                    {
+                        "assignee": null,
+                        "body": "I have a problem",
+                        "subject": "Old ticket",
+                        "uuid": "e5f5a9b0-1c08-4e56-8f5c-92e00bc3cf52"
+                    },
+                    {
+                        "assignee": {
+                            "email": "bob@nyaruka.com",
+                            "first_name": "Bob",
+                            "name": "Bob"
+                        },
+                        "body": "What day is it?",
+                        "subject": "Question",
+                        "uuid": "78d1fe0d-7e39-461e-81c3-a6a25f15ed69"
+                    }
+                ],
                 "timezone": "America/Guayaquil",
                 "urn": "tel:+12024561111",
                 "urns": [
@@ -521,14 +574,14 @@
             ],
             "results": {
                 "2factor": {
-                    "category": "",
                     "categories": [
                         ""
                     ],
-                    "category_localized": "",
                     "categories_localized": [
                         ""
                     ],
+                    "category": "",
+                    "category_localized": "",
                     "created_on": "2018-04-11T13:24:30.123456Z",
                     "extra": null,
                     "input": "",
@@ -540,14 +593,14 @@
                     ]
                 },
                 "favorite_color": {
-                    "category": "Red",
                     "categories": [
                         "Red"
                     ],
-                    "category_localized": "Red",
                     "categories_localized": [
                         "Red"
                     ],
+                    "category": "Red",
+                    "category_localized": "Red",
                     "created_on": "2018-04-11T13:24:30.123456Z",
                     "extra": null,
                     "input": "",
@@ -589,7 +642,7 @@
                         ]
                     },
                     "input": "Hi there",
-                    "name": "intent",
+                    "name": "Intent",
                     "node_uuid": "f5bb9b7a-7b5e-45c3-8f0e-61b4e95edf03",
                     "value": "book_flight",
                     "values": [
@@ -597,14 +650,14 @@
                     ]
                 },
                 "phone_number": {
-                    "category": "",
                     "categories": [
                         ""
                     ],
-                    "category_localized": "",
                     "categories_localized": [
                         ""
                     ],
+                    "category": "",
+                    "category_localized": "",
                     "created_on": "2018-04-11T13:24:30.123456Z",
                     "extra": null,
                     "input": "",
@@ -616,14 +669,14 @@
                     ]
                 },
                 "webhook": {
-                    "category": "Success",
                     "categories": [
                         "Success"
                     ],
-                    "category_localized": "Success",
                     "categories_localized": [
                         "Success"
                     ],
+                    "category": "Success",
+                    "category_localized": "Success",
                     "created_on": "2018-04-11T13:24:30.123456Z",
                     "extra": {
                         "results": [
@@ -663,7 +716,8 @@
                     "age": 23,
                     "gender": "Male",
                     "join_date": "2017-12-02T00:00:00.000000-02:00",
-                    "not_set": null
+                    "not_set": null,
+                    "state": null
                 },
                 "first_name": "Ryan",
                 "groups": [
@@ -678,7 +732,26 @@
                 ],
                 "id": "1234567",
                 "language": "eng",
+                "last_seen_on": "2017-12-31T11:35:10.035757-02:00",
                 "name": "Ryan Lewis",
+                "tickets": [
+                    {
+                        "assignee": null,
+                        "body": "I have a problem",
+                        "subject": "Old ticket",
+                        "uuid": "e5f5a9b0-1c08-4e56-8f5c-92e00bc3cf52"
+                    },
+                    {
+                        "assignee": {
+                            "email": "bob@nyaruka.com",
+                            "first_name": "Bob",
+                            "name": "Bob"
+                        },
+                        "body": "What day is it?",
+                        "subject": "Question",
+                        "uuid": "78d1fe0d-7e39-461e-81c3-a6a25f15ed69"
+                    }
+                ],
                 "timezone": "America/Guayaquil",
                 "urn": "tel:+12024561111",
                 "urns": [
@@ -693,7 +766,8 @@
                 "age": 23,
                 "gender": "Male",
                 "join_date": "2017-12-02T00:00:00.000000-02:00",
-                "not_set": null
+                "not_set": null,
+                "state": null
             },
             "flow": {
                 "name": "Collect Age",
@@ -702,14 +776,14 @@
             },
             "results": {
                 "age": {
-                    "category": "Youth",
                     "categories": [
                         "Youth"
                     ],
-                    "category_localized": "Youth",
                     "categories_localized": [
                         "Youth"
                     ],
+                    "category": "Youth",
+                    "category_localized": "Youth",
                     "created_on": "2018-04-11T13:24:30.123456Z",
                     "extra": null,
                     "input": "",
@@ -734,7 +808,8 @@
                         "age": 23,
                         "gender": "Male",
                         "join_date": "2017-12-02T00:00:00.000000-02:00",
-                        "not_set": null
+                        "not_set": null,
+                        "state": null
                     },
                     "first_name": "Ryan",
                     "groups": [
@@ -749,7 +824,26 @@
                     ],
                     "id": "1234567",
                     "language": "eng",
+                    "last_seen_on": "2017-12-31T11:35:10.035757-02:00",
                     "name": "Ryan Lewis",
+                    "tickets": [
+                        {
+                            "assignee": null,
+                            "body": "I have a problem",
+                            "subject": "Old ticket",
+                            "uuid": "e5f5a9b0-1c08-4e56-8f5c-92e00bc3cf52"
+                        },
+                        {
+                            "assignee": {
+                                "email": "bob@nyaruka.com",
+                                "first_name": "Bob",
+                                "name": "Bob"
+                            },
+                            "body": "What day is it?",
+                            "subject": "Question",
+                            "uuid": "78d1fe0d-7e39-461e-81c3-a6a25f15ed69"
+                        }
+                    ],
                     "timezone": "America/Guayaquil",
                     "urn": "tel:+12024561111",
                     "urns": [
@@ -766,14 +860,14 @@
                 },
                 "results": {
                     "age": {
-                        "category": "Youth",
                         "categories": [
                             "Youth"
                         ],
-                        "category_localized": "Youth",
                         "categories_localized": [
                             "Youth"
                         ],
+                        "category": "Youth",
+                        "category_localized": "Youth",
                         "created_on": "2018-04-11T13:24:30.123456Z",
                         "extra": null,
                         "input": "",
@@ -790,6 +884,7 @@
             },
             "status": "completed",
             "urns": {
+                "discord": null,
                 "ext": null,
                 "facebook": null,
                 "fcm": null,
@@ -797,6 +892,7 @@
                 "jiochat": null,
                 "line": null,
                 "mailto": "mailto:foo@bar.com",
+                "rocketchat": null,
                 "tel": "tel:+12024561111",
                 "telegram": null,
                 "twitter": null,
@@ -824,13 +920,16 @@
                     "age": 33,
                     "gender": "Female",
                     "join_date": null,
-                    "not_set": null
+                    "not_set": null,
+                    "state": null
                 },
                 "first_name": "Jasmine",
                 "groups": [],
                 "id": "0",
                 "language": "spa",
+                "last_seen_on": null,
                 "name": "Jasmine",
+                "tickets": [],
                 "timezone": null,
                 "urn": "tel:+12024562222",
                 "urns": [
@@ -843,7 +942,8 @@
                 "age": 33,
                 "gender": "Female",
                 "join_date": null,
-                "not_set": null
+                "not_set": null,
+                "state": null
             },
             "flow": {
                 "name": "Parent",
@@ -852,14 +952,14 @@
             },
             "results": {
                 "role": {
-                    "category": "Reporter",
                     "categories": [
                         "Reporter"
                     ],
-                    "category_localized": "Reporter",
                     "categories_localized": [
                         "Reporter"
                     ],
+                    "category": "Reporter",
+                    "category_localized": "Reporter",
                     "created_on": "2000-01-01T00:00:00.000000Z",
                     "extra": null,
                     "input": "a reporter",
@@ -884,13 +984,16 @@
                         "age": 33,
                         "gender": "Female",
                         "join_date": null,
-                        "not_set": null
+                        "not_set": null,
+                        "state": null
                     },
                     "first_name": "Jasmine",
                     "groups": [],
                     "id": "0",
                     "language": "spa",
+                    "last_seen_on": null,
                     "name": "Jasmine",
+                    "tickets": [],
                     "timezone": null,
                     "urn": "tel:+12024562222",
                     "urns": [
@@ -905,14 +1008,14 @@
                 },
                 "results": {
                     "role": {
-                        "category": "Reporter",
                         "categories": [
                             "Reporter"
                         ],
-                        "category_localized": "Reporter",
                         "categories_localized": [
                             "Reporter"
                         ],
+                        "category": "Reporter",
+                        "category_localized": "Reporter",
                         "created_on": "2000-01-01T00:00:00.000000Z",
                         "extra": null,
                         "input": "a reporter",
@@ -929,6 +1032,7 @@
             },
             "status": "active",
             "urns": {
+                "discord": null,
                 "ext": null,
                 "facebook": null,
                 "fcm": null,
@@ -936,6 +1040,7 @@
                 "jiochat": null,
                 "line": null,
                 "mailto": null,
+                "rocketchat": null,
                 "tel": "tel:+12024562222",
                 "telegram": null,
                 "twitter": null,
@@ -951,14 +1056,17 @@
     {
         "template": "@(json(trigger))",
         "output_json": {
-            "type": "flow_action",
+            "keyword": "",
+            "origin": "",
             "params": {
-                "source": "website",
                 "address": {
                     "state": "WA"
-                }
+                },
+                "source": "website"
             },
-            "keyword": null
+            "ticket": null,
+            "type": "flow_action",
+            "user": null
         }
     }
 ]

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/dates"
-	"github.com/nyaruka/goflow/utils/jsonx"
 )
 
 // XDateTime is a datetime value.
@@ -41,24 +41,19 @@ func (x XDateTime) Render() string {
 
 // Format returns the pretty text representation
 func (x XDateTime) Format(env envs.Environment) string {
-	formatted, _ := x.FormatCustom(string(env.DateFormat())+" "+string(env.TimeFormat()), env.Timezone())
+	formatted, _ := x.FormatCustom(env, string(env.DateFormat())+" "+string(env.TimeFormat()), env.Timezone())
 	return formatted
 }
 
 // FormatCustom provides customised formatting
-func (x XDateTime) FormatCustom(format string, tz *time.Location) (string, error) {
-	goFormat, err := envs.ToGoDateFormat(format, envs.DateTimeFormatting)
-	if err != nil {
-		return "", err
-	}
-
+func (x XDateTime) FormatCustom(env envs.Environment, layout string, tz *time.Location) (string, error) {
 	// convert to our timezone if we have one (otherwise we remain in the date's default)
 	dt := x.Native()
 	if tz != nil {
 		dt = dt.In(tz)
 	}
 
-	return dt.Format(goFormat), nil
+	return dates.Format(dt, layout, env.DefaultLocale().ToBCP47(), dates.DateTimeLayouts)
 }
 
 // String returns the native string representation of this type

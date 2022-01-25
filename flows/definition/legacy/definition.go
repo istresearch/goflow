@@ -8,14 +8,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/definition/legacy/expressions"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/goflow/utils/jsonx"
-	"github.com/nyaruka/goflow/utils/uuids"
 
 	"github.com/buger/jsonparser"
 	"github.com/pkg/errors"
@@ -833,7 +833,7 @@ func migrateRules(baseLanguage envs.Language, r RuleSet, validDests map[uuids.UU
 
 // migrates the given legacy rule to a router case
 func migrateRule(baseLanguage envs.Language, r Rule, category migratedCategory, localization migratedLocalization) (migratedCase, map[string]interface{}, error) {
-	newType, _ := testTypeMappings[r.Test.Type]
+	newType := testTypeMappings[r.Test.Type]
 	var arguments []string
 	var err error
 

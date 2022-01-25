@@ -15,7 +15,6 @@ import (
 var xs = types.NewXText
 var xn = types.RequireXNumberFromString
 var xi = types.NewXNumberFromInt
-var xa = types.NewXArray
 var ERROR = types.NewXErrorf("any error")
 
 func TestBinaryOperators(t *testing.T) {
@@ -72,6 +71,9 @@ func TestBinaryOperators(t *testing.T) {
 
 		{operators.Exponent, xi(3), xi(2), xi(9)},
 		{operators.Exponent, xs("3"), xs("2"), xi(9)},
+		{operators.Exponent, xn("2"), xn("32.000"), xn("4294967296")},
+		{operators.Exponent, xn("9"), xn("0.5"), xn("3")},
+		{operators.Exponent, xn("4"), xn("2.5"), xn("32")},
 		{operators.Exponent, ERROR, xi(1), ERROR},
 		{operators.Exponent, xi(1), ERROR, ERROR},
 
