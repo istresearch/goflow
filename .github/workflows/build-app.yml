@@ -34,7 +34,7 @@ jobs:
           TEST_NAME: "Unit Tests"
         run: |-
           set +e
-          go test -json ./... 2>&1 | tee test-results.txt
+          go test ./... 2>&1 | tee test-results.txt
           set -e
           S=$? #non-0 means error
           if [ $S -eq 0 ]; then
