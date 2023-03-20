@@ -14,10 +14,11 @@ jobs:
 
       - name: "Create Version"
         id: version_cfg
+        # note: Go lang requires tag format: v0.12.3-4
+        # see: https://stackoverflow.com/questions/62140832/why-golang-packages-have-to-be-v0-or-v1-and-not-v2020
         run: |-
           VER_BUILD=$(date +%H%M)
-          VERSION_NUM="$(date +%y).$(date +%m).$(date +%d)-${VER_BUILD:0:3}"
-          # note: Go lang requires tag format: v1.2.3-4
+          VERSION_NUM="v0.$(date +%y)$(date +%m).$(date +%d)-${VER_BUILD:0:3}"
           echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
 
       - name: "Tag release"
