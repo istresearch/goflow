@@ -16,7 +16,8 @@ jobs:
         id: version_cfg
         run: |-
           VER_BUILD=$(date +%H%M)
-          VERSION_NUM="$(date +%y).$(date +%m).$(date +%d).${VER_BUILD:0:3}"
+          VERSION_NUM="$(date +%y).$(date +%m).$(date +%d)+${VER_BUILD:0:3}"
+          # note: Go lang requires tag format: v1.2.3+4
           echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
 
       - name: "Tag release"
