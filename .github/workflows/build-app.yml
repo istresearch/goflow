@@ -1,0 +1,53 @@
+name: build app
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - master
+    tags:
+      - 'v*'
+
+jobs:
+  test-code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Install dependencies"
+        run: |-
+          sudo apt -y update && sudo apt -y install pandoc gettext
+
+      - uses: actions/checkout@v3
+
+      - name: "Set up Go"
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+
+      - name: "Build app"
+        env:
+          GOFLAGS: -p=2
+        run: |-
+          go build -v ./...
+
+      - name: "Run tests"
+        env:
+          TEST_NAME: "Unit Tests"
+        run: |-
+          set +e
+          go test ./... 2>&1 | tee test-results.txt
+          set -e
+          S=$? #non-0 means error
+          if [ $S -eq 0 ]; then
+            R="Test(s) Passed: ${TEST_NAME}"
+            echo "::notice::$R"
+            R=":white_check_mark: $R"
+          else
+            R="Test(s) '${TEST_NAME}' failed"
+            echo "::error::$R"
+            R=":x: $R"
+          fi
+          echo "### ${R}" >> $GITHUB_STEP_SUMMARY
+          echo '---' >> $GITHUB_STEP_SUMMARY
+          echo '```shell' >> $GITHUB_STEP_SUMMARY
+          cat test-results.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

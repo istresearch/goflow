@@ -1,0 +1,30 @@
+name: build app
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Create Version"
+        id: version_cfg
+        run: |-
+          VER_BUILD=$(date +%H%M)
+          VERSION_NUM="$(date +%y).$(date +%m).$(date +%d).${VER_BUILD:0:3}"
+          echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
+
+      - name: "Tag release"
+        uses: actions/create-release@
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version_cfg.outputs.VERSION_NUM }}
+          release_name: v${{ steps.version_cfg.outputs.VERSION_NUM }}
+          draft: false
+          prerelease: false
