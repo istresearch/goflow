@@ -15,8 +15,8 @@ require (
 	github.com/sergi/go-diff v1.1.0
 	github.com/shopspring/decimal v1.2.0
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/net v0.0.0-20200925080053-05aa5d4ee321
-	golang.org/x/text v0.3.3
+	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
+	golang.org/x/text v0.3.7
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0
