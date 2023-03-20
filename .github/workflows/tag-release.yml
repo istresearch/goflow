@@ -7,14 +7,14 @@ on:
       - master
 
 jobs:
-  tag-release:
+  create-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - name: "Create Version"
         id: version_cfg
-        runs: |-
+        run: |-
           VER_BUILD=$(date +%H%M)
           VERSION_NUM="$(date +%y).$(date +%m).$(date +%d).${VER_BUILD:0:3}"
           echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
