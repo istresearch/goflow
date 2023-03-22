@@ -51,3 +51,19 @@ jobs:
           echo '```shell' >> $GITHUB_STEP_SUMMARY
           cat test-results.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: "Create Version"
+        id: version_cfg
+        # note: Go lang requires tag format: v0.12.3-4
+        # see: https://stackoverflow.com/questions/62140832/why-golang-packages-have-to-be-v0-or-v1-and-not-v2020
+        run: |-
+          VER_BUILD=$(date +%H%M)
+          VERSION_NUM="0.$(date +%y)$(date +%m).$(date +%d)-${VER_BUILD:0:3}"
+          echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
+
+      - name: "Tag alpha build"
+        run: |-
+          GIT_TAG=v${{ steps.version_cfg.outputs.VERSION_NUM }}
+          git tag ${GIT_TAG}
+          git push origin ${GIT_TAG}
+          echo "::notice::Pushed alpha tag ${GIT_TAG} to repo"

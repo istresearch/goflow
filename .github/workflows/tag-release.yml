@@ -1,4 +1,4 @@
-name: build app
+name: tag release
 
 on:
   push:
