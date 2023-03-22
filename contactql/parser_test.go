@@ -4,215 +4,260 @@ import (
 	"testing"
 
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/assets/static/types"
+	"github.com/nyaruka/goflow/assets/static"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/goflow/envs"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParseQuery(t *testing.T) {
+	resolver := contactql.NewMockResolver(
+		[]assets.Field{
+			static.NewField("f1b5aea6-6586-41c7-9020-1a6326cc6565", "age", "Age", assets.FieldTypeNumber),
+			static.NewField("d66a7823-eada-40e5-9a3a-57239d4690bf", "gender", "Gender", assets.FieldTypeText),
+			static.NewField("165def68-3216-4ebf-96bc-f6f1ee5bd966", "state", "State", assets.FieldTypeState),
+			static.NewField("85baf5e1-b57a-46dc-a726-a84e8c4229c7", "dob", "DOB", assets.FieldTypeDatetime),
+		},
+		[]assets.Flow{
+			static.NewFlow("f87fd7cd-e501-4394-9cff-62309af85138", "Registration", []byte(`{}`)),
+		},
+		[]assets.Group{
+			static.NewGroup("a9b5b0a0-1098-4bc2-8384-eea09ae43e6b", "U-Reporters", ""),
+		},
+	)
+
 	tests := []struct {
-		text   string
-		parsed string
-		err    string
-		redact envs.RedactionPolicy
+		text       string
+		parsed     string
+		err        string
+		redactURNs bool
+		resolver   contactql.Resolver
 	}{
 		// implicit conditions
-		{`"will"`, `name ~ "will"`, "", envs.RedactionPolicyNone},
-		{`Will`, `name ~ "Will"`, "", envs.RedactionPolicyNone},
-		{`wil`, `name ~ "wil"`, "", envs.RedactionPolicyNone},
-		{`wi`, `name ~ "wi"`, "", envs.RedactionPolicyNone},
-		{`w`, `name = "w"`, "", envs.RedactionPolicyNone}, // don't have at least 1 token of >= 2 chars
-		{`w me`, `name = "w" AND name ~ "me"`, "", envs.RedactionPolicyNone},
-		{`w m`, `name = "w" AND name = "m"`, "", envs.RedactionPolicyNone},
-		{`tel:+0123456566`, `tel = "+0123456566"`, "", envs.RedactionPolicyNone}, // whole query is a URN
-		{`twitter:bobby`, `twitter = "bobby"`, "", envs.RedactionPolicyNone},
-		{`(202) 456-1111`, `tel = "+12024561111"`, "", envs.RedactionPolicyNone}, // whole query looks like a phone number
-		{`+12024561111`, `tel = "+12024561111"`, "", envs.RedactionPolicyNone},
-		{` 202.456.1111 `, `tel = "+12024561111"`, "", envs.RedactionPolicyNone},
-		{`"+12024561111"`, `tel ~ "+12024561111"`, "", envs.RedactionPolicyNone},
-		{`566`, `name ~ 566`, "", envs.RedactionPolicyNone}, // too short to be a phone number
+		{text: `"will"`, parsed: `name ~ "will"`, resolver: resolver},
+		{text: `Will`, parsed: `name ~ "Will"`, resolver: resolver},
+		{text: `wil`, parsed: `name ~ "wil"`, resolver: resolver},
+		{text: `wi`, parsed: `name ~ "wi"`, resolver: resolver},
+		{text: `w`, parsed: `name = "w"`, resolver: resolver}, // don't have at least 1 token of >= 2 chars
+		{text: `w me`, parsed: `name = "w" AND name ~ "me"`, resolver: resolver},
+		{text: `w m`, parsed: `name = "w" AND name = "m"`, resolver: resolver},
+		{text: `tel:+0123456566`, parsed: `tel = "+0123456566"`, resolver: resolver}, // whole query is a URN
+		{text: `twitter:bobby`, parsed: `twitter = "bobby"`, resolver: resolver},
+		{text: `(202) 456-1111`, parsed: `tel = "+12024561111"`, resolver: resolver}, // whole query looks like a phone number
+		{text: `+12024561111`, parsed: `tel = "+12024561111"`, resolver: resolver},
+		{text: ` 202.456.1111 `, parsed: `tel = "+12024561111"`, resolver: resolver},
+		{text: `"+12024561111"`, parsed: `tel ~ "+12024561111"`, resolver: resolver},
+		{text: `566`, parsed: `name ~ 566`, resolver: resolver}, // too short to be a phone number
 
 		// implicit conditions with URN redaction
-		{`will`, `name ~ "will"`, "", envs.RedactionPolicyURNs},
-		{`tel:+0123456566`, `name ~ "tel:+0123456566"`, "", envs.RedactionPolicyURNs},
-		{`twitter:bobby`, `name ~ "twitter:bobby"`, "", envs.RedactionPolicyURNs},
-		{`0123456566`, `id = 123456566`, "", envs.RedactionPolicyURNs},
-		{`+0123456566`, `id = 123456566`, "", envs.RedactionPolicyURNs},
-		{`0123-456-566`, `name ~ "0123-456-566"`, "", envs.RedactionPolicyURNs},
+		{text: `will`, parsed: `name ~ "will"`, redactURNs: true, resolver: resolver},
+		{text: `tel:+0123456566`, parsed: `name ~ "tel:+0123456566"`, redactURNs: true, resolver: resolver},
+		{text: `twitter:bobby`, parsed: `name ~ "twitter:bobby"`, redactURNs: true, resolver: resolver},
+		{text: `0123456566`, parsed: `id = 123456566`, redactURNs: true, resolver: resolver},
+		{text: `+0123456566`, parsed: `id = 123456566`, redactURNs: true, resolver: resolver},
+		{text: `0123-456-566`, parsed: `name ~ "0123-456-566"`, redactURNs: true, resolver: resolver},
 
 		// explicit conditions on name
-		{`Name=will`, `name = "will"`, "", envs.RedactionPolicyNone},
-		{`Name=O'Shea`, `name = "O'Shea"`, "", envs.RedactionPolicyNone},
-		{`Name ~ "felix"`, `name ~ "felix"`, "", envs.RedactionPolicyNone},
-		{`Name HAS "Felix"`, `name ~ "Felix"`, "", envs.RedactionPolicyNone},
-		{`name is ""`, `name = ""`, "", envs.RedactionPolicyNone},            // is not set
-		{`name != ""`, `name != ""`, "", envs.RedactionPolicyNone},           // is set
-		{`name != "felix"`, `name != "felix"`, "", envs.RedactionPolicyNone}, // is not equal to value
-		{`Name ~ ""`, ``, "contains operator on name requires token of minimum length 2", envs.RedactionPolicyNone},
+		{text: `Name=will`, parsed: `name = "will"`, resolver: resolver},
+		{text: `Name=O'Shea`, parsed: `name = "O'Shea"`, resolver: resolver},
+		{text: `Name ~ "felix"`, parsed: `name ~ "felix"`, resolver: resolver},
+		{text: `Name HAS "Felix"`, parsed: `name ~ "Felix"`, resolver: resolver},
+		{text: `name is ""`, parsed: `name = ""`, resolver: resolver},            // is not set
+		{text: `name != ""`, parsed: `name != ""`, resolver: resolver},           // is set
+		{text: `name != "felix"`, parsed: `name != "felix"`, resolver: resolver}, // is not equal to value
+		{text: `Name ~ ""`, err: "contains operator on name requires token of minimum length 2", resolver: resolver},
 
 		// explicit attribute conditions
-		{`language = spa`, `language = "spa"`, "", envs.RedactionPolicyNone},
-		{`Group IS U-Reporters`, `group = "U-Reporters"`, "", envs.RedactionPolicyNone},
-		{`CREATED_ON>27-01-2020`, `created_on > "27-01-2020"`, "", envs.RedactionPolicyNone},
+		{text: `language = spa`, parsed: `language = "spa"`, resolver: resolver},
+		{text: `Group IS U-Reporters`, parsed: `group = "U-Reporters"`, resolver: resolver},
+		{text: `CREATED_ON>27-01-2020`, parsed: `created_on > "27-01-2020"`, resolver: resolver},
 
 		// explicit conditions on URN
-		{`tel=""`, `tel = ""`, "", envs.RedactionPolicyNone},
-		{`tel!=""`, `tel != ""`, "", envs.RedactionPolicyNone},
-		{`tel IS 233`, `tel = 233`, "", envs.RedactionPolicyNone},
-		{`tel HAS 233`, `tel ~ 233`, "", envs.RedactionPolicyNone},
-		{`tel ~ 23`, ``, "contains operator on URN requires value of minimum length 3", envs.RedactionPolicyNone},
-		{`mailto = user@example.com`, `mailto = "user@example.com"`, "", envs.RedactionPolicyNone},
-		{`MAILTO ~ user@example.com`, `mailto ~ "user@example.com"`, "", envs.RedactionPolicyNone},
-		{`URN=ewok`, `urn = "ewok"`, "", envs.RedactionPolicyNone},
+		{text: `tel=""`, parsed: `tel = ""`, resolver: resolver},
+		{text: `tel!=""`, parsed: `tel != ""`, resolver: resolver},
+		{text: `tel IS 233`, parsed: `tel = 233`, resolver: resolver},
+		{text: `tel HAS 233`, parsed: `tel ~ 233`, resolver: resolver},
+		{text: `tel ~ 23`, err: "contains operator on URN requires value of minimum length 3", resolver: resolver},
+		{text: `mailto = user@example.com`, parsed: `mailto = "user@example.com"`, resolver: resolver},
+		{text: `MAILTO ~ user@example.com`, parsed: `mailto ~ "user@example.com"`, resolver: resolver},
+		{text: `URN=ewok`, parsed: `urn = "ewok"`, resolver: resolver},
 
 		// explicit conditions on URN with URN redaction
-		{`tel=""`, `tel = ""`, "", envs.RedactionPolicyURNs},
-		{`tel!=""`, `tel != ""`, "", envs.RedactionPolicyURNs},
-		{`mailto=""`, `mailto = ""`, "", envs.RedactionPolicyURNs},
-		{`mailto!=""`, `mailto != ""`, "", envs.RedactionPolicyURNs},
-		{`urn=""`, `urn = ""`, "", envs.RedactionPolicyURNs},
-		{`urn!=""`, `urn != ""`, "", envs.RedactionPolicyURNs},
-		{`tel = 233`, ``, "cannot query on redacted URNs", envs.RedactionPolicyURNs},
-		{`tel ~ 233`, ``, "cannot query on redacted URNs", envs.RedactionPolicyURNs},
-		{`mailto = user@example.com`, ``, "cannot query on redacted URNs", envs.RedactionPolicyURNs},
-		{`MAILTO ~ user@example.com`, ``, "cannot query on redacted URNs", envs.RedactionPolicyURNs},
-		{`URN=ewok`, ``, "cannot query on redacted URNs", envs.RedactionPolicyURNs},
+		{text: `tel=""`, parsed: `tel = ""`, redactURNs: true, resolver: resolver},
+		{text: `tel!=""`, parsed: `tel != ""`, redactURNs: true, resolver: resolver},
+		{text: `mailto=""`, parsed: `mailto = ""`, redactURNs: true, resolver: resolver},
+		{text: `mailto!=""`, parsed: `mailto != ""`, redactURNs: true, resolver: resolver},
+		{text: `urn=""`, parsed: `urn = ""`, redactURNs: true, resolver: resolver},
+		{text: `urn!=""`, parsed: `urn != ""`, redactURNs: true, resolver: resolver},
+		{text: `tel = 233`, err: "cannot query on redacted URNs", redactURNs: true, resolver: resolver},
+		{text: `tel ~ 233`, err: "cannot query on redacted URNs", redactURNs: true, resolver: resolver},
+		{text: `mailto = user@example.com`, err: "cannot query on redacted URNs", redactURNs: true, resolver: resolver},
+		{text: `MAILTO ~ user@example.com`, err: "cannot query on redacted URNs", redactURNs: true, resolver: resolver},
+		{text: `URN=ewok`, err: "cannot query on redacted URNs", redactURNs: true, resolver: resolver},
 
 		// field conditions
-		{`Age IS 18`, `age = 18`, "", envs.RedactionPolicyNone},
-		{`AGE != ""`, `age != ""`, "", envs.RedactionPolicyNone},
-		{`age ~ 34`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`gender ~ M`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
+		{text: `Age IS 18`, parsed: `age = 18`, resolver: resolver},
+		{text: `AGE != ""`, parsed: `age != ""`, resolver: resolver},
+		{text: `age ~ 34`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `gender ~ M`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
 
 		// lt/lte/gt/gte comparisons
-		{`Age > "18"`, `age > 18`, "", envs.RedactionPolicyNone},
-		{`Age >= 18`, `age >= 18`, "", envs.RedactionPolicyNone},
-		{`Age < 18`, `age < 18`, "", envs.RedactionPolicyNone},
-		{`Age <= 18`, `age <= 18`, "", envs.RedactionPolicyNone},
-		{`DOB > "27-01-2020"`, `dob > "27-01-2020"`, "", envs.RedactionPolicyNone},
-		{`DOB >= 27-01-2020`, `dob >= "27-01-2020"`, "", envs.RedactionPolicyNone},
-		{`DOB < 27/01/2020`, `dob < "27/01/2020"`, "", envs.RedactionPolicyNone},
-		{`DOB <= 27.01.2020`, `dob <= "27.01.2020"`, "", envs.RedactionPolicyNone},
-		{`name > Will`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`tel < 23425`, ``, "comparisons with < can only be used with date and number fields", envs.RedactionPolicyNone},
+		{text: `Age > "18"`, parsed: `age > 18`, resolver: resolver},
+		{text: `Age >= 18`, parsed: `age >= 18`, resolver: resolver},
+		{text: `Age < 18`, parsed: `age < 18`, resolver: resolver},
+		{text: `Age <= 18`, parsed: `age <= 18`, resolver: resolver},
+		{text: `DOB > "27-01-2020"`, parsed: `dob > "27-01-2020"`, resolver: resolver},
+		{text: `DOB >= 27-01-2020`, parsed: `dob >= "27-01-2020"`, resolver: resolver},
+		{text: `DOB < 27/01/2020`, parsed: `dob < "27/01/2020"`, resolver: resolver},
+		{text: `DOB <= 27.01.2020`, parsed: `dob <= "27.01.2020"`, resolver: resolver},
+		{text: `name > Will`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `tel < 23425`, err: "comparisons with < can only be used with date and number fields", resolver: resolver},
 
 		// implicit combinations
-		{`will felix`, `name ~ "will" AND name ~ "felix"`, "", envs.RedactionPolicyNone},
-		{`will +123456566`, `name ~ "will" AND tel ~ "+123456566"`, "", envs.RedactionPolicyNone},
+		{text: `will felix`, parsed: `name ~ "will" AND name ~ "felix"`, resolver: resolver},
+		{text: `will +123456566`, parsed: `name ~ "will" AND tel ~ "+123456566"`, resolver: resolver},
 
 		// explicit combinations...
-		{`will and felix`, `name ~ "will" AND name ~ "felix"`, "", envs.RedactionPolicyNone}, // explicit AND
-		{`will or felix or matt`, `(name ~ "will" OR name ~ "felix") OR name ~ "matt"`, "", envs.RedactionPolicyNone},
-		{`name=will or Name ~ "felix"`, `name = "will" OR name ~ "felix"`, "", envs.RedactionPolicyNone},
-		{`Name is will or Name has felix`, `name = "will" OR name ~ "felix"`, "", envs.RedactionPolicyNone}, // operator aliases
-		{`will or Name ~ "felix"`, `name ~ "will" OR name ~ "felix"`, "", envs.RedactionPolicyNone},
+		{text: `will and felix`, parsed: `name ~ "will" AND name ~ "felix"`, resolver: resolver}, // explicit AND
+		{text: `will AND felix AND matt`, parsed: `name ~ "will" AND name ~ "felix" AND name ~ "matt"`, resolver: resolver},
+		{text: `will or felix or matt`, parsed: `name ~ "will" OR name ~ "felix" OR name ~ "matt"`, resolver: resolver},
+		{text: `name = will AND age > 18 AND tickets = 0`, parsed: `name = "will" AND age > 18 AND tickets = 0`, resolver: resolver},
+		{text: `name = will OR age > 18 AND tickets = 0`, parsed: `name = "will" OR (age > 18 AND tickets = 0)`, resolver: resolver},
+		{text: `name = will AND age > 18 OR tickets = 0`, parsed: `(name = "will" AND age > 18) OR tickets = 0`, resolver: resolver},
+		{text: `(name = will AND age > 18) AND tickets = 0`, parsed: `name = "will" AND age > 18 AND tickets = 0`, resolver: resolver},
+		{text: `(name = will AND age > 18) AND (tickets = 0 AND language = eng)`, parsed: `name = "will" AND age > 18 AND tickets = 0 AND language = "eng"`, resolver: resolver},
+		{text: `name=will or Name ~ "felix"`, parsed: `name = "will" OR name ~ "felix"`, resolver: resolver},
+		{text: `Name is will or Name has felix`, parsed: `name = "will" OR name ~ "felix"`, resolver: resolver}, // operator aliases
+		{text: `will or Name ~ "felix"`, parsed: `name ~ "will" OR name ~ "felix"`, resolver: resolver},
 
 		// boolean operator precedence is AND before OR, even when AND is implicit
-		{`will and felix or matt amber`, `(name ~ "will" AND name ~ "felix") OR (name ~ "matt" AND name ~ "amber")`, "", envs.RedactionPolicyNone},
+		{text: `will and felix or matt and amber`, parsed: `(name ~ "will" AND name ~ "felix") OR (name ~ "matt" AND name ~ "amber")`, resolver: resolver},
+		{text: `will and felix or matt amber`, parsed: `(name ~ "will" AND name ~ "felix") OR (name ~ "matt" AND name ~ "amber")`, resolver: resolver},
 
 		// boolean combinations can themselves be combined
 		{
-			`(Age < 18 and Gender = "male") or (Age > 18 and Gender = "female")`,
-			`(age < 18 AND gender = "male") OR (age > 18 AND gender = "female")`,
-			"",
-			envs.RedactionPolicyNone,
+			text:     `(Age < 18 and Gender = "male") or (Age > 18 and Gender = "female")`,
+			parsed:   `(age < 18 AND gender = "male") OR (age > 18 AND gender = "female")`,
+			resolver: resolver,
+		},
+		{
+			text:     `age > 10 and age < 20 or age > 30 and age < 40 or age > 50 and age < 60`,
+			parsed:   `(age > 10 AND age < 20) OR (age > 30 AND age < 40) OR (age > 50 AND age < 60)`,
+			resolver: resolver,
 		},
 
-		{`xyz != ""`, ``, "can't resolve 'xyz' to attribute, scheme or field", envs.RedactionPolicyNone},
-		{`group != "Gamers"`, ``, "'Gamers' is not a valid group name", envs.RedactionPolicyNone},
-		{`language = "xxxx"`, ``, "'xxxx' is not a valid language code", envs.RedactionPolicyNone},
+		{text: `xyz != ""`, err: "can't resolve 'xyz' to attribute, scheme or field", resolver: resolver},
+		{text: `group != "Gamers"`, err: "'Gamers' is not a valid group name", resolver: resolver},
+		{text: `flow = "Catch All"`, err: "'Catch All' is not a valid flow name", resolver: resolver},
+		{text: `status = "xxxx"`, err: "'xxxx' is not a valid contact status", resolver: resolver},
+		{text: `language = "xxxx"`, err: "'xxxx' is not a valid language code", resolver: resolver},
 
-		{`name = "O\"Leary"`, `name = "O\"Leary"`, "", envs.RedactionPolicyNone}, // string unquoting
+		{text: `name = "O\"Leary"`, parsed: `name = "O\"Leary"`, resolver: resolver}, // string unquoting
 
 		// = supported for everything
-		{`uuid = f81d1eb5-215d-4ae8-90fa-38b3f2d6e328`, `uuid = "f81d1eb5-215d-4ae8-90fa-38b3f2d6e328"`, "", envs.RedactionPolicyNone},
-		{`id = 02352`, `id = 02352`, "", envs.RedactionPolicyNone},
-		{`name = felix`, `name = "felix"`, "", envs.RedactionPolicyNone},
-		{`language = eng`, `language = "eng"`, "", envs.RedactionPolicyNone},
-		{`group = u-reporters`, `group = "U-Reporters"`, "", envs.RedactionPolicyNone},
-		{`created_on = 20-02-2020`, `created_on = "20-02-2020"`, "", envs.RedactionPolicyNone},
-		{`tel = 02352`, `tel = 02352`, "", envs.RedactionPolicyNone},
-		{`urn = 02352`, `urn = 02352`, "", envs.RedactionPolicyNone},
-		{`age = 18`, `age = 18`, "", envs.RedactionPolicyNone},
-		{`gender = male`, `gender = "male"`, "", envs.RedactionPolicyNone},
-		{`dob = 20-02-2020`, `dob = "20-02-2020"`, "", envs.RedactionPolicyNone},
-		{`state = Pichincha`, `state = "Pichincha"`, "", envs.RedactionPolicyNone},
+		{text: `uuid = f81d1eb5-215d-4ae8-90fa-38b3f2d6e328`, parsed: `uuid = "f81d1eb5-215d-4ae8-90fa-38b3f2d6e328"`, resolver: resolver},
+		{text: `id = 02352`, parsed: `id = 02352`, resolver: resolver},
+		{text: `name = felix`, parsed: `name = "felix"`, resolver: resolver},
+		{text: `status = ACTIVE`, parsed: `status = "ACTIVE"`, resolver: resolver},
+		{text: `language = eng`, parsed: `language = "eng"`, resolver: resolver},
+		{text: `tickets = 0`, parsed: `tickets = 0`, resolver: resolver},
+		{text: `group = u-reporters`, parsed: `group = "u-reporters"`, resolver: resolver},
+		{text: `flow = registration`, parsed: `flow = "registration"`, resolver: resolver},
+		{text: `created_on = 20-02-2020`, parsed: `created_on = "20-02-2020"`, resolver: resolver},
+		{text: `tel = 02352`, parsed: `tel = 02352`, resolver: resolver},
+		{text: `urn = 02352`, parsed: `urn = 02352`, resolver: resolver},
+		{text: `age = 18`, parsed: `age = 18`, resolver: resolver},
+		{text: `gender = male`, parsed: `gender = "male"`, resolver: resolver},
+		{text: `dob = 20-02-2020`, parsed: `dob = "20-02-2020"`, resolver: resolver},
+		{text: `state = Pichincha`, parsed: `state = "Pichincha"`, resolver: resolver},
 
 		// != supported for everything
-		{`uuid != f81d1eb5-215d-4ae8-90fa-38b3f2d6e328`, `uuid != "f81d1eb5-215d-4ae8-90fa-38b3f2d6e328"`, "", envs.RedactionPolicyNone},
-		{`id != 02352`, `id != 02352`, "", envs.RedactionPolicyNone},
-		{`name != felix`, `name != "felix"`, "", envs.RedactionPolicyNone},
-		{`language != eng`, `language != "eng"`, "", envs.RedactionPolicyNone},
-		{`group != u-reporters`, `group != "U-Reporters"`, "", envs.RedactionPolicyNone},
-		{`created_on != 20-02-2020`, `created_on != "20-02-2020"`, "", envs.RedactionPolicyNone},
-		{`tel != 02352`, `tel != 02352`, "", envs.RedactionPolicyNone},
-		{`urn != 02352`, `urn != 02352`, "", envs.RedactionPolicyNone},
-		{`age != 18`, `age != 18`, "", envs.RedactionPolicyNone},
-		{`gender != male`, `gender != "male"`, "", envs.RedactionPolicyNone},
-		{`dob != 20-02-2020`, `dob != "20-02-2020"`, "", envs.RedactionPolicyNone},
-		{`state != Pichincha`, `state != "Pichincha"`, "", envs.RedactionPolicyNone},
+		{text: `uuid != f81d1eb5-215d-4ae8-90fa-38b3f2d6e328`, parsed: `uuid != "f81d1eb5-215d-4ae8-90fa-38b3f2d6e328"`, resolver: resolver},
+		{text: `id != 02352`, parsed: `id != 02352`, resolver: resolver},
+		{text: `name != felix`, parsed: `name != "felix"`, resolver: resolver},
+		{text: `status != blocked`, parsed: `status != "blocked"`, resolver: resolver},
+		{text: `language != eng`, parsed: `language != "eng"`, resolver: resolver},
+		{text: `group != u-reporters`, parsed: `group != "u-reporters"`, resolver: resolver},
+		{text: `flow != registration`, parsed: `flow != "registration"`, resolver: resolver},
+		{text: `tickets != 0`, parsed: `tickets != 0`, resolver: resolver},
+		{text: `created_on != 20-02-2020`, parsed: `created_on != "20-02-2020"`, resolver: resolver},
+		{text: `tel != 02352`, parsed: `tel != 02352`, resolver: resolver},
+		{text: `urn != 02352`, parsed: `urn != 02352`, resolver: resolver},
+		{text: `age != 18`, parsed: `age != 18`, resolver: resolver},
+		{text: `gender != male`, parsed: `gender != "male"`, resolver: resolver},
+		{text: `dob != 20-02-2020`, parsed: `dob != "20-02-2020"`, resolver: resolver},
+		{text: `state != Pichincha`, parsed: `state != "Pichincha"`, resolver: resolver},
 
-		// = "" supported for name, language, fields and urns
-		{`uuid = ""`, ``, "can't check whether 'uuid' is set or not set", envs.RedactionPolicyNone},
-		{`id = ""`, ``, "can't check whether 'id' is set or not set", envs.RedactionPolicyNone},
-		{`name = ""`, `name = ""`, "", envs.RedactionPolicyNone},
-		{`language = ""`, `language = ""`, "", envs.RedactionPolicyNone},
-		{`group = ""`, ``, "can't check whether 'group' is set or not set", envs.RedactionPolicyNone},
-		{`created_on = ""`, ``, "can't check whether 'created_on' is set or not set", envs.RedactionPolicyNone},
-		{`tel = ""`, `tel = ""`, "", envs.RedactionPolicyNone},
-		{`urn = ""`, `urn = ""`, "", envs.RedactionPolicyNone},
-		{`age = ""`, `age = ""`, "", envs.RedactionPolicyNone},
-		{`gender = ""`, `gender = ""`, "", envs.RedactionPolicyNone},
-		{`dob = ""`, `dob = ""`, "", envs.RedactionPolicyNone},
-		{`state = ""`, `state = ""`, "", envs.RedactionPolicyNone},
+		// = "" supported for name, language, flow, groups, fields, urns
+		{text: `uuid = ""`, err: "can't check whether 'uuid' is set or not set", resolver: resolver},
+		{text: `id = ""`, err: "can't check whether 'id' is set or not set", resolver: resolver},
+		{text: `name = ""`, parsed: `name = ""`, resolver: resolver},
+		{text: `status = ""`, err: "can't check whether 'status' is set or not set", resolver: resolver},
+		{text: `language = ""`, parsed: `language = ""`, resolver: resolver},
+		{text: `group = ""`, parsed: `group = ""`, resolver: resolver},
+		{text: `flow = ""`, parsed: `flow = ""`, resolver: resolver},
+		{text: `tickets = ""`, err: "can't check whether 'tickets' is set or not set", resolver: resolver},
+		{text: `created_on = ""`, err: "can't check whether 'created_on' is set or not set", resolver: resolver},
+		{text: `tel = ""`, parsed: `tel = ""`, resolver: resolver},
+		{text: `urn = ""`, parsed: `urn = ""`, resolver: resolver},
+		{text: `age = ""`, parsed: `age = ""`, resolver: resolver},
+		{text: `gender = ""`, parsed: `gender = ""`, resolver: resolver},
+		{text: `dob = ""`, parsed: `dob = ""`, resolver: resolver},
+		{text: `state = ""`, parsed: `state = ""`, resolver: resolver},
 
 		// ~ only supported for name and URNs
-		{`uuid ~ 02352`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`id ~ 02352`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`name ~ felix`, `name ~ "felix"`, "", envs.RedactionPolicyNone},
-		{`language ~ eng`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`group ~ porters`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`created_on ~ 2018`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`tel ~ 02352`, `tel ~ 02352`, "", envs.RedactionPolicyNone},
-		{`urn ~ 02352`, `urn ~ 02352`, "", envs.RedactionPolicyNone},
-		{`age ~ 18`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`gender ~ mal`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`dob ~ 20-02-2020`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
-		{`state ~ Pichincha`, ``, "contains conditions can only be used with name or URN values", envs.RedactionPolicyNone},
+		{text: `uuid ~ 02352`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `id ~ 02352`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `name ~ felix`, parsed: `name ~ "felix"`, resolver: resolver},
+		{text: `status ~ sto`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `language ~ eng`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `group ~ porters`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `flow ~ reg`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `tickets ~ 12`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `created_on ~ 2018`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `tel ~ 02352`, parsed: `tel ~ 02352`, resolver: resolver},
+		{text: `urn ~ 02352`, parsed: `urn ~ 02352`, resolver: resolver},
+		{text: `age ~ 18`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `gender ~ mal`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `dob ~ 20-02-2020`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
+		{text: `state ~ Pichincha`, err: "contains conditions can only be used with name or URN values", resolver: resolver},
 
 		// > >= < <= only supported for numeric or date fields
-		{`uuid > 02352`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`id > 02352`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`name > felix`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`language > eng`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`group > reporters`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`created_on > 20-02-2020`, `created_on > "20-02-2020"`, "", envs.RedactionPolicyNone},
-		{`tel > 02352`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`urn > 02352`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`age > 18`, `age > 18`, "", envs.RedactionPolicyNone},
-		{`gender > male`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
-		{`dob > 20-02-2020`, `dob > "20-02-2020"`, "", envs.RedactionPolicyNone},
-		{`state > Pichincha`, ``, "comparisons with > can only be used with date and number fields", envs.RedactionPolicyNone},
+		{text: `uuid > 02352`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `id > 02352`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `name > felix`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `status > blo`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `language > eng`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `group > reporters`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `flow > registration`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `tickets > 0`, parsed: `tickets > 0`, resolver: resolver},
+		{text: `created_on > 20-02-2020`, parsed: `created_on > "20-02-2020"`, resolver: resolver},
+		{text: `tel > 02352`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `urn > 02352`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `age > 18`, parsed: `age > 18`, resolver: resolver},
+		{text: `gender > male`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+		{text: `dob > 20-02-2020`, parsed: `dob > "20-02-2020"`, resolver: resolver},
+		{text: `state > Pichincha`, err: "comparisons with > can only be used with date and number fields", resolver: resolver},
+
+		// however if we don't provide a resolver, we don't know the field type, so allowed for all
+		{text: `age > 18`, parsed: `age > 18`},
+		{text: `gender > male`, parsed: `gender > "male"`},
+		{text: `dob > 20-02-2020`, parsed: `dob > "20-02-2020"`},
+		{text: `state > Pichincha`, parsed: `state > "Pichincha"`},
 	}
 
-	resolver := contactql.NewMockResolver(map[string]assets.Field{
-		"age":    types.NewField(assets.FieldUUID("f1b5aea6-6586-41c7-9020-1a6326cc6565"), "age", "Age", assets.FieldTypeNumber),
-		"gender": types.NewField(assets.FieldUUID("d66a7823-eada-40e5-9a3a-57239d4690bf"), "gender", "Gender", assets.FieldTypeText),
-		"state":  types.NewField(assets.FieldUUID("165def68-3216-4ebf-96bc-f6f1ee5bd966"), "state", "State", assets.FieldTypeState),
-		"dob":    types.NewField(assets.FieldUUID("85baf5e1-b57a-46dc-a726-a84e8c4229c7"), "dob", "DOB", assets.FieldTypeDatetime),
-	}, map[string]assets.Group{
-		"u-reporters": types.NewGroup(assets.GroupUUID(""), "U-Reporters", ""),
-	})
-
 	for _, tc := range tests {
-		env := envs.NewBuilder().WithDateFormat(envs.DateFormatDayMonthYear).WithDefaultCountry("US").WithRedactionPolicy(tc.redact).Build()
+		redact := envs.RedactionPolicyNone
+		if tc.redactURNs {
+			redact = envs.RedactionPolicyURNs
+		}
 
-		parsed, err := contactql.ParseQuery(env, tc.text, resolver)
+		env := envs.NewBuilder().WithDateFormat(envs.DateFormatDayMonthYear).WithDefaultCountry("US").WithRedactionPolicy(redact).Build()
+
+		parsed, err := contactql.ParseQuery(env, tc.text, tc.resolver)
+
 		if tc.err != "" {
 			assert.EqualError(t, err, tc.err, "error mismatch for '%s'", tc.text)
-			assert.Nil(t, parsed)
 		} else {
 			assert.NoError(t, err, "unexpected error for '%s'", tc.text)
 			assert.Equal(t, tc.parsed, parsed.String(), "parse mismatch for '%s'", tc.text)
@@ -320,18 +365,122 @@ func TestParsingErrors(t *testing.T) {
 	}
 
 	env := envs.NewBuilder().WithDefaultCountry("US").Build()
-	resolver := contactql.NewMockResolver(map[string]assets.Field{
-		"age":    types.NewField(assets.FieldUUID("f1b5aea6-6586-41c7-9020-1a6326cc6565"), "age", "Age", assets.FieldTypeNumber),
-		"dob":    types.NewField(assets.FieldUUID("3810a485-3fda-4011-a589-7320c0b8dbef"), "dob", "DOB", assets.FieldTypeDatetime),
-		"gender": types.NewField(assets.FieldUUID("d66a7823-eada-40e5-9a3a-57239d4690bf"), "gender", "Gender", assets.FieldTypeText),
-	}, map[string]assets.Group{})
+	resolver := contactql.NewMockResolver(
+		[]assets.Field{
+			static.NewField("f1b5aea6-6586-41c7-9020-1a6326cc6565", "age", "Age", assets.FieldTypeNumber),
+			static.NewField("3810a485-3fda-4011-a589-7320c0b8dbef", "dob", "DOB", assets.FieldTypeDatetime),
+			static.NewField("d66a7823-eada-40e5-9a3a-57239d4690bf", "gender", "Gender", assets.FieldTypeText),
+		},
+		[]assets.Flow{},
+		[]assets.Group{},
+	)
 
 	for _, tc := range tests {
 		_, err := contactql.ParseQuery(env, tc.query, resolver)
+
 		assert.EqualError(t, err, tc.errMsg, "error mismatch for '%s'", tc.query)
 
 		qerr := err.(*contactql.QueryError)
 		assert.Equal(t, tc.errCode, qerr.Code())
 		assert.Equal(t, tc.errExtra, qerr.Extra())
+	}
+}
+
+func TestSimplify(t *testing.T) {
+	env := envs.NewBuilder().WithDateFormat(envs.DateFormatDayMonthYear).WithDefaultCountry("US").Build()
+	resolver := contactql.NewMockResolver(
+		[]assets.Field{
+			static.NewField("f1b5aea6-6586-41c7-9020-1a6326cc6565", "age", "Age", assets.FieldTypeNumber),
+		},
+		[]assets.Flow{},
+		[]assets.Group{},
+	)
+
+	tests := []struct {
+		text   string
+		parsed string
+	}{
+		{
+			text:   `age > 10 and age < 20 and age < 40 and age < 60`,
+			parsed: `age > 10 AND age < 20 AND age < 40 AND age < 60`,
+		},
+		{
+			text:   `age > 10 and age < 20 and age < 40 or age < 60`,
+			parsed: `(age > 10 AND age < 20 AND age < 40) OR age < 60`,
+		},
+		{
+			text:   `age > 10 or age < 20 and age < 40 and age < 60`,
+			parsed: `age > 10 OR (age < 20 AND age < 40 AND age < 60)`,
+		},
+		{
+			text:   `age > 10 and age < 20 or age > 30 and age < 40 or age > 50 and age < 60`,
+			parsed: `(age > 10 AND age < 20) OR (age > 30 AND age < 40) OR (age > 50 AND age < 60)`,
+		},
+		{
+			text:   `age > 10 and age < 20 or age > 30 and age < 40 or age > 50 and age < 60 or age > 70 and age < 80`,
+			parsed: `(age > 10 AND age < 20) OR (age > 30 AND age < 40) OR (age > 50 AND age < 60) OR (age > 70 AND age < 80)`,
+		},
+		{
+			text:   `Jim McJim or Bob McBob or Ann McAnn`,
+			parsed: `(name ~ "Jim" AND name ~ "McJim") OR (name ~ "Bob" AND name ~ "McBob") OR (name ~ "Ann" AND name ~ "McAnn")`,
+		},
+	}
+
+	for _, tc := range tests {
+		parsed, err := contactql.ParseQuery(env, tc.text, resolver)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.parsed, parsed.String(), "parsed mismatch for input '%s'", tc.text)
+	}
+}
+
+func TestQueryBuilding(t *testing.T) {
+	tests := []struct {
+		node  contactql.QueryNode
+		query string
+	}{
+		{
+			node:  contactql.NewCondition("age", contactql.PropertyTypeField, ">", "10"),
+			query: "age > 10",
+		},
+		{
+			node: contactql.NewBoolCombination(contactql.BoolOperatorAnd,
+				contactql.NewCondition("age", contactql.PropertyTypeField, ">", "10"),
+				contactql.NewCondition("age", contactql.PropertyTypeField, "<", "20"),
+			),
+			query: "age > 10 AND age < 20",
+		},
+		{
+			node: contactql.NewBoolCombination(contactql.BoolOperatorOr,
+				contactql.NewCondition("name", contactql.PropertyTypeField, "=", "bob"),
+				contactql.NewBoolCombination(contactql.BoolOperatorAnd,
+					contactql.NewCondition("age", contactql.PropertyTypeField, ">", "10"),
+					contactql.NewCondition("age", contactql.PropertyTypeField, "<", "20"),
+				),
+			),
+			query: `name = "bob" OR (age > 10 AND age < 20)`,
+		},
+		{
+			node: contactql.NewBoolCombination(contactql.BoolOperatorAnd,
+				contactql.NewCondition("age", contactql.PropertyTypeField, ">", "10"),
+			),
+			query: "age > 10",
+		},
+		{
+			node:  contactql.NewBoolCombination(contactql.BoolOperatorAnd),
+			query: "",
+		},
+		{
+			node: contactql.NewBoolCombination(contactql.BoolOperatorAnd,
+				contactql.NewCondition("name", contactql.PropertyTypeField, "=", "bob"),
+				contactql.NewBoolCombination(contactql.BoolOperatorAnd,
+					contactql.NewBoolCombination(contactql.BoolOperatorAnd),
+				),
+			),
+			query: `name = "bob"`,
+		},
+	}
+
+	for _, tc := range tests {
+		assert.Equal(t, tc.query, contactql.Stringify(tc.node.Simplify()))
 	}
 }

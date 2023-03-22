@@ -26,7 +26,7 @@ type flowRun struct {
 	flow    flows.Flow
 	flowRef *assets.FlowReference
 
-	parent  flows.FlowRun
+	parent  flows.Run
 	results flows.Results
 	path    Path
 	events  []flows.Event
@@ -34,7 +34,6 @@ type flowRun struct {
 
 	createdOn  time.Time
 	modifiedOn time.Time
-	expiresOn  *time.Time
 	exitedOn   *time.Time
 
 	webhook     types.XValue
@@ -42,7 +41,7 @@ type flowRun struct {
 }
 
 // NewRun initializes a new context and flow run for the passed in flow and contact
-func NewRun(session flows.Session, flow flows.Flow, parent flows.FlowRun) flows.FlowRun {
+func NewRun(session flows.Session, flow flows.Flow, parent flows.Run) flows.Run {
 	now := dates.Now()
 	r := &flowRun{
 		uuid:       flows.RunUUID(uuids.New()),
@@ -58,8 +57,6 @@ func NewRun(session flows.Session, flow flows.Flow, parent flows.FlowRun) flows.
 	}
 
 	r.environment = newRunEnvironment(session.Environment(), r)
-	r.ResetExpiration(nil)
-
 	r.webhook = types.XObjectEmpty
 	r.legacyExtra = newLegacyExtra(r)
 
@@ -91,13 +88,7 @@ func (r *flowRun) Exit(status flows.RunStatus) {
 
 	r.status = status
 	r.exitedOn = &now
-	r.expiresOn = nil
 	r.modifiedOn = now
-
-	// if we have a parent, it's expiration should no longer include our expiration
-	if r.ParentInSession() != nil {
-		r.ParentInSession().ResetExpiration(nil)
-	}
 }
 func (r *flowRun) Status() flows.RunStatus { return r.status }
 func (r *flowRun) SetStatus(status flows.RunStatus) {
@@ -113,7 +104,7 @@ func (r *flowRun) SetWebhook(value types.XValue) {
 }
 
 // ParentInSession returns the parent of the run within the same session if one exists
-func (r *flowRun) ParentInSession() flows.FlowRun { return r.parent }
+func (r *flowRun) ParentInSession() flows.Run { return r.parent }
 
 // Parent returns either the same session parent or if this session was triggered from a trigger_flow action
 // in another session, that run
@@ -124,8 +115,8 @@ func (r *flowRun) Parent() flows.RunSummary {
 	return r.ParentInSession()
 }
 
-func (r *flowRun) Ancestors() []flows.FlowRun {
-	ancestors := make([]flows.FlowRun, 0)
+func (r *flowRun) Ancestors() []flows.Run {
+	ancestors := make([]flows.Run, 0)
 	if r.parent != nil {
 		run := r.parent.(*flowRun)
 		ancestors = append(ancestors, run)
@@ -200,27 +191,7 @@ func (r *flowRun) PathLocation() (flows.Step, flows.Node, error) {
 
 func (r *flowRun) CreatedOn() time.Time  { return r.createdOn }
 func (r *flowRun) ModifiedOn() time.Time { return r.modifiedOn }
-func (r *flowRun) ExpiresOn() *time.Time { return r.expiresOn }
-func (r *flowRun) ResetExpiration(from *time.Time) {
-	if r.Flow() != nil && r.Flow().ExpireAfterMinutes() >= 0 {
-		if from == nil {
-			now := dates.Now()
-			from = &now
-		}
-
-		expiresAfterMinutes := time.Duration(r.Flow().ExpireAfterMinutes())
-		expiresOn := from.Add(expiresAfterMinutes * time.Minute)
-
-		r.expiresOn = &expiresOn
-		r.modifiedOn = dates.Now()
-	}
-
-	if r.ParentInSession() != nil {
-		r.ParentInSession().ResetExpiration(r.expiresOn)
-	}
-}
-
-func (r *flowRun) ExitedOn() *time.Time { return r.exitedOn }
+func (r *flowRun) ExitedOn() *time.Time  { return r.exitedOn }
 
 // RootContext returns the root context for expression evaluation
 //
@@ -339,16 +310,16 @@ func (r *flowRun) nodeContext(env envs.Environment) map[string]types.XValue {
 
 // EvaluateTemplate evaluates the given template in the context of this run
 func (r *flowRun) EvaluateTemplateValue(template string) (types.XValue, error) {
-	context := types.NewXObject(r.RootContext(r.Environment()))
+	ctx := types.NewXObject(r.RootContext(r.Environment()))
 
-	return excellent.EvaluateTemplateValue(r.Environment(), context, template)
+	return excellent.EvaluateTemplateValue(r.Environment(), ctx, template)
 }
 
 // EvaluateTemplateText evaluates the given template as text in the context of this run
 func (r *flowRun) EvaluateTemplateText(template string, escaping excellent.Escaping, truncate bool) (string, error) {
-	context := types.NewXObject(r.RootContext(r.Environment()))
+	ctx := types.NewXObject(r.RootContext(r.Environment()))
 
-	value, err := excellent.EvaluateTemplate(r.Environment(), context, template, escaping)
+	value, err := excellent.EvaluateTemplate(r.Environment(), ctx, template, escaping)
 	if truncate {
 		value = utils.TruncateEllipsis(value, r.Session().Engine().MaxTemplateChars())
 	}
@@ -444,13 +415,12 @@ type runEnvelope struct {
 
 	CreatedOn  time.Time  `json:"created_on" validate:"required"`
 	ModifiedOn time.Time  `json:"modified_on" validate:"required"`
-	ExpiresOn  *time.Time `json:"expires_on"`
 	ExitedOn   *time.Time `json:"exited_on"`
 }
 
 // ReadRun decodes a run from the passed in JSON. Parent run UUID is returned separately as the
 // run in question might be loaded yet from the session.
-func ReadRun(session flows.Session, data json.RawMessage, missing assets.MissingCallback) (flows.FlowRun, error) {
+func ReadRun(session flows.Session, data json.RawMessage, missing assets.MissingCallback) (flows.Run, error) {
 	e := &runEnvelope{}
 	var err error
 
@@ -465,7 +435,6 @@ func ReadRun(session flows.Session, data json.RawMessage, missing assets.Missing
 		status:     e.Status,
 		createdOn:  e.CreatedOn,
 		modifiedOn: e.ModifiedOn,
-		expiresOn:  e.ExpiresOn,
 		exitedOn:   e.ExitedOn,
 	}
 
@@ -519,7 +488,6 @@ func (r *flowRun) MarshalJSON() ([]byte, error) {
 		Status:     r.status,
 		CreatedOn:  r.createdOn,
 		ModifiedOn: r.modifiedOn,
-		ExpiresOn:  r.expiresOn,
 		ExitedOn:   r.exitedOn,
 		Results:    r.results,
 	}

@@ -10,14 +10,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
+	"github.com/Masterminds/semver"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows/definition"
 	"github.com/nyaruka/goflow/flows/definition/migrations"
-
-	"github.com/Masterminds/semver"
 )
 
 func main() {
@@ -42,7 +40,7 @@ func main() {
 
 // Migrate reads a flow definition as JSON and migrates it
 func Migrate(reader io.Reader, toVersion *semver.Version, baseMediaURL string, pretty bool) ([]byte, error) {
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}

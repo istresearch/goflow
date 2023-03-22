@@ -43,17 +43,14 @@ func NewAddContactGroups(uuid flows.ActionUUID, groups []*assets.GroupReference)
 }
 
 // Execute adds our contact to the specified groups
-func (a *AddContactGroupsAction) Execute(run flows.FlowRun, step flows.Step, logModifier flows.ModifierCallback, logEvent flows.EventCallback) error {
+func (a *AddContactGroupsAction) Execute(run flows.Run, step flows.Step, logModifier flows.ModifierCallback, logEvent flows.EventCallback) error {
 	contact := run.Contact()
 	if contact == nil {
 		logEvent(events.NewErrorf("can't execute action in session without a contact"))
 		return nil
 	}
 
-	groups, err := resolveGroups(run, a.Groups, logEvent)
-	if err != nil {
-		return err
-	}
+	groups := resolveGroups(run, a.Groups, logEvent)
 
 	a.applyModifier(run, modifiers.NewGroups(groups, modifiers.GroupsAdd), logModifier, logEvent)
 	return nil

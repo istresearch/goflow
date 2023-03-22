@@ -20,11 +20,23 @@ type ErrorMessageFunc func(validator.FieldError) string
 
 var messageFuncs = map[string]ErrorMessageFunc{
 	"required": func(e validator.FieldError) string { return "is required" },
+	"email":    func(e validator.FieldError) string { return "is not a valid email address" },
 	"uuid":     func(e validator.FieldError) string { return "must be a valid UUID" },
 	"uuid4":    func(e validator.FieldError) string { return "must be a valid UUID4" },
 	"url":      func(e validator.FieldError) string { return "is not a valid URL" },
-	"min":      func(e validator.FieldError) string { return fmt.Sprintf("must have a minimum of %s items", e.Param()) },
-	"max":      func(e validator.FieldError) string { return fmt.Sprintf("must have a maximum of %s items", e.Param()) },
+	"min": func(e validator.FieldError) string {
+		if e.Kind() == reflect.Slice {
+			return fmt.Sprintf("must have a minimum of %s items", e.Param())
+		}
+		return fmt.Sprintf("must be greater than or equal to %s", e.Param())
+	},
+	"max": func(e validator.FieldError) string {
+		if e.Kind() == reflect.Slice {
+			return fmt.Sprintf("must have a maximum of %s items", e.Param())
+		}
+		return fmt.Sprintf("must be less than or equal to %s", e.Param())
+	},
+	"startswith": func(e validator.FieldError) string { return fmt.Sprintf("must start with '%s'", e.Param()) },
 	"mutually_exclusive": func(e validator.FieldError) string {
 		return fmt.Sprintf("is mutually exclusive with '%s'", e.Param())
 	},
@@ -106,6 +118,9 @@ func Validate(obj interface{}) error {
 
 	for i, fieldErr := range validationErrs {
 		location := fieldErr.Namespace()
+		if strings.HasSuffix(location, ".-") {
+			location = fieldErr.StructNamespace()
+		}
 
 		// the first part of the namespace is always the struct name so we remove it
 		parts := strings.Split(location, ".")[1:]

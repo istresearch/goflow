@@ -4,17 +4,16 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	main "github.com/nyaruka/goflow/cmd/flowrunner"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/test"
-
-	main "github.com/nyaruka/goflow/cmd/flowrunner"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,6 +61,7 @@ func TestPrintEvent(t *testing.T) {
 	sa := session.Assets()
 	flow, _ := sa.Flows().Get("50c3706e-fedb-42c0-8eab-dda3335714b7")
 	timeout := 3
+	expiresOn := time.Date(2022, 2, 3, 13, 45, 30, 0, time.UTC)
 
 	tests := []struct {
 		event    flows.Event
@@ -77,15 +77,15 @@ func TestPrintEvent(t *testing.T) {
 		{events.NewContactRefreshed(session.Contact()), `👤 contact refreshed on resume`},
 		{events.NewContactTimezoneChanged(session.Environment().Timezone()), `🕑 timezone changed to 'America/Guayaquil'`},
 		{events.NewDialEnded(flows.NewDial(flows.DialStatusBusy, 3)), `☎️ dial ended with 'busy'`},
-		{events.NewDialWait(urns.URN(`tel:+1234567890`)), `⏳ waiting for dial (type /dial <answered|no_answer|busy|failed>)...`},
+		{events.NewDialWait(urns.URN(`tel:+1234567890`), nil), `⏳ waiting for dial (type /dial <answered|no_answer|busy|failed>)...`},
 		{events.NewEmailSent([]string{"code@example.com"}, "Hi", "What up?"), `✉️ email sent with subject 'Hi'`},
 		{events.NewEnvironmentRefreshed(session.Environment()), `⚙️ environment refreshed on resume`},
 		{events.NewErrorf("this didn't work"), `⚠️ this didn't work`},
 		{events.NewFailure(errors.New("this really didn't work")), `🛑 this really didn't work`},
 		{events.NewFlowEntered(flow.Reference(), "", false), `↪️ entered flow 'Registration'`},
 		{events.NewInputLabelsAdded("2a786bbc-2314-4d57-a0c9-b66e1642e5e2", []*flows.Label{sa.Labels().FindByName("Spam")}), `🏷️ labeled with 'Spam'`},
-		{events.NewMsgWait(nil, nil), `⏳ waiting for message...`},
-		{events.NewMsgWait(&timeout, nil), `⏳ waiting for message (3 sec timeout, type /timeout to simulate)...`},
+		{events.NewMsgWait(nil, nil, nil), `⏳ waiting for message...`},
+		{events.NewMsgWait(&timeout, &expiresOn, nil), `⏳ waiting for message (3 sec timeout, type /timeout to simulate)...`},
 	}
 
 	for _, tc := range tests {

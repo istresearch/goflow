@@ -15,6 +15,7 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/utils"
+	"github.com/shopspring/decimal"
 
 	"github.com/pkg/errors"
 	validator "gopkg.in/go-playground/validator.v9"
@@ -440,20 +441,16 @@ func (c *Contact) UpdatePreferredChannel(channel *Channel) bool {
 }
 
 // ReevaluateQueryBasedGroups reevaluates membership of all query based groups for this contact
-func (c *Contact) ReevaluateQueryBasedGroups(env envs.Environment) ([]*Group, []*Group, []error) {
+func (c *Contact) ReevaluateQueryBasedGroups(env envs.Environment) ([]*Group, []*Group) {
 	added := make([]*Group, 0)
 	removed := make([]*Group, 0)
-	errs := make([]error, 0)
 
 	for _, group := range c.assets.Groups().All() {
 		if !group.UsesQuery() {
 			continue
 		}
 
-		qualifies, err := group.CheckQueryBasedMembership(env, c)
-		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "unable to re-evaluate membership of group '%s'", group.Name()))
-		}
+		qualifies := group.CheckQueryBasedMembership(env, c)
 
 		if qualifies {
 			if c.groups.Add(group) {
@@ -466,20 +463,18 @@ func (c *Contact) ReevaluateQueryBasedGroups(env envs.Environment) ([]*Group, []
 		}
 	}
 
-	return added, removed, errs
+	return added, removed
 }
 
 // QueryProperty resolves a contact query search key for this contact
+//
+// Note that this method excludes id, group and flow search attributes as those are disallowed
+// query based groups.
 func (c *Contact) QueryProperty(env envs.Environment, key string, propType contactql.PropertyType) []interface{} {
 	if propType == contactql.PropertyTypeAttribute {
 		switch key {
 		case contactql.AttributeUUID:
 			return []interface{}{string(c.uuid)}
-		case contactql.AttributeID:
-			if c.id != 0 {
-				return []interface{}{fmt.Sprintf("%d", c.id)}
-			}
-			return nil
 		case contactql.AttributeName:
 			if c.name != "" {
 				return []interface{}{c.name}
@@ -496,12 +491,8 @@ func (c *Contact) QueryProperty(env envs.Environment, key string, propType conta
 				vals[i] = urn.URN().Path()
 			}
 			return vals
-		case contactql.AttributeGroup:
-			vals := make([]interface{}, c.Groups().Count())
-			for i, group := range c.Groups().All() {
-				vals[i] = group.Name()
-			}
-			return vals
+		case contactql.AttributeTickets:
+			return []interface{}{decimal.NewFromInt(int64(c.tickets.Count()))}
 		case contactql.AttributeCreatedOn:
 			return []interface{}{c.createdOn}
 		case contactql.AttributeLastSeenOn:

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/nyaruka/goflow/utils"
-
 	"github.com/pkg/errors"
 )
 
@@ -13,8 +12,10 @@ const (
 	ErrUnexpectedToken       = "unexpected_token"       // `token` the unexpected token
 	ErrInvalidNumber         = "invalid_number"         // `value` the value we tried to parse as a number
 	ErrInvalidDate           = "invalid_date"           // `value` the value we tried to parse as a date
+	ErrInvalidStatus         = "invalid_status"         // `value` the value we tried to parse as a contact status
 	ErrInvalidLanguage       = "invalid_language"       // `value` the value we tried to parse as a language code
 	ErrInvalidGroup          = "invalid_group"          // `value` the value we tried to parse as a group name
+	ErrInvalidFlow           = "invalid_flow"           // `value` the value we tried to parse as a flow name
 	ErrInvalidPartialName    = "invalid_partial_name"   // `min_token_length` the minimum length of token required for name contains condition
 	ErrInvalidPartialURN     = "invalid_partial_urn"    // `min_value_length` the minimum length of value required for URN contains condition
 	ErrUnsupportedContains   = "unsupported_contains"   // `property` the property key

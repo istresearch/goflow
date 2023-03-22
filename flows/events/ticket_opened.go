@@ -15,7 +15,7 @@ const TypeTicketOpened string = "ticket_opened"
 type Ticket struct {
 	UUID       flows.TicketUUID          `json:"uuid"                   validate:"required,uuid4"`
 	Ticketer   *assets.TicketerReference `json:"ticketer"               validate:"required,dive"`
-	Subject    string                    `json:"subject"`
+	Topic      *assets.TopicReference    `json:"topic"                  validate:"omitempty,dive"`
 	Body       string                    `json:"body"`
 	ExternalID string                    `json:"external_id,omitempty"`
 	Assignee   *assets.UserReference     `json:"assignee,omitempty"     validate:"omitempty,dive"`
@@ -32,7 +32,10 @@ type Ticket struct {
 //         "uuid": "d605bb96-258d-4097-ad0a-080937db2212",
 //         "name": "Support Tickets"
 //       },
-//       "subject": "Need help",
+//       "topic": {
+//         "uuid": "add17edf-0b6e-4311-bcd7-a64b2a459157",
+//         "name": "Weather"
+//       },
 //       "body": "Where are my cookies?",
 //       "external_id": "32526523",
 //       "assignee": {"email": "bob@nyaruka.com", "name": "Bob"}
@@ -41,7 +44,7 @@ type Ticket struct {
 //
 // @event ticket_opened
 type TicketOpenedEvent struct {
-	baseEvent
+	BaseEvent
 
 	Ticket *Ticket `json:"ticket"`
 }
@@ -49,11 +52,11 @@ type TicketOpenedEvent struct {
 // NewTicketOpened returns a new ticket opened event
 func NewTicketOpened(ticket *flows.Ticket) *TicketOpenedEvent {
 	return &TicketOpenedEvent{
-		baseEvent: newBaseEvent(TypeTicketOpened),
+		BaseEvent: NewBaseEvent(TypeTicketOpened),
 		Ticket: &Ticket{
 			UUID:       ticket.UUID(),
 			Ticketer:   ticket.Ticketer().Reference(),
-			Subject:    ticket.Subject(),
+			Topic:      ticket.Topic().Reference(),
 			Body:       ticket.Body(),
 			ExternalID: ticket.ExternalID(),
 			Assignee:   ticket.Assignee().Reference(),

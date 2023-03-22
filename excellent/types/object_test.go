@@ -6,7 +6,6 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/test"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,6 +59,8 @@ func TestReadXObject(t *testing.T) {
 	assert.EqualError(t, err, "JSON doesn't contain an object")
 	_, err = types.ReadXObject([]byte(`[]`))
 	assert.EqualError(t, err, "JSON doesn't contain an object")
+	_, err = types.ReadXObject([]byte(`{`))
+	assert.EqualError(t, err, "invalid JSON")
 
 	obj, err := types.ReadXObject([]byte(`{}`))
 	assert.NoError(t, err)
