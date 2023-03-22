@@ -1,9 +1,9 @@
-name: "Tag a branch with Go-compatible timestamp-based version"
+name: "Create version tag"
 
 on: workflow_dispatch
 
 jobs:
-  test-code:
+  tag-branch:
     runs-on: ubuntu-latest
     environment: default
     steps:
@@ -12,7 +12,7 @@ jobs:
           ref: ${{ env.GITHUB_REF }}
           fetch-depth: 0
 
-      - name: "Create Version"
+      - name: "Create Version Tag"
         id: version_cfg
         # note: Go lang requires tag format: v0.12.3-4
         # see: https://stackoverflow.com/questions/62140832/why-golang-packages-have-to-be-v0-or-v1-and-not-v2020
@@ -23,7 +23,7 @@ jobs:
 
       - name: "Tag branch"
         run: |-
-          GIT_TAG=v${{ steps.version_cfg.outputs.VERSION_NUM }}
-          git tag ${GIT_TAG}
-          git push origin ${GIT_TAG}
-          echo "::notice::Pushed alpha tag ${GIT_TAG} to repo "
+          TAG2USE=v${{ steps.version_cfg.outputs.VERSION_NUM }}
+          git tag ${TAG2USE}
+          git push origin ${TAG2USE}
+          echo "::notice::Pushed tag ${TAG2USE} to repo branch ${{ env.GITHUB_REF }}"
