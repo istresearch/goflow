@@ -1,18 +1,18 @@
-name: tag release
+name: "Create version tag"
 
-on:
-  push:
-    branches:
-      - main
-      - master
+on: [workflow_dispatch]
 
 jobs:
-  create-release:
+  tag-branch:
     runs-on: ubuntu-latest
+    environment: default
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ env.GITHUB_REF }}
+          fetch-depth: 0
 
-      - name: "Create Version"
+      - name: "Create Version Tag"
         id: version_cfg
         # note: Go lang requires tag format: v0.12.3-4
         # see: https://stackoverflow.com/questions/62140832/why-golang-packages-have-to-be-v0-or-v1-and-not-v2020
@@ -21,12 +21,9 @@ jobs:
           VERSION_NUM="0.$(date +%y)$(date +%m).$(date +%d)-${VER_BUILD:0:3}"
           echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
 
-      - name: "Tag release"
-        uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.version_cfg.outputs.VERSION_NUM }}
-          release_name: v${{ steps.version_cfg.outputs.VERSION_NUM }}
-          draft: false
-          prerelease: false
+      - name: "Tag branch"
+        run: |-
+          TAG2USE=v${{ steps.version_cfg.outputs.VERSION_NUM }}
+          git tag ${TAG2USE}
+          git push origin ${TAG2USE}
+          echo "::notice::Pushed tag ${TAG2USE} to repo branch ${{ env.GITHUB_REF }}"
