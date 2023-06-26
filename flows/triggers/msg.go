@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
@@ -72,7 +73,7 @@ func NewKeywordMatch(typeName KeywordMatchType, keyword string) *KeywordMatch {
 }
 
 // InitializeRun performs additional initialization when we visit our first node
-func (t *MsgTrigger) InitializeRun(run flows.FlowRun, logEvent flows.EventCallback) error {
+func (t *MsgTrigger) InitializeRun(run flows.Run, logEvent flows.EventCallback) error {
 	// update our input
 	input := inputs.NewMsg(run.Session().Assets(), t.msg, t.triggeredOn)
 
@@ -115,6 +116,12 @@ func (b *Builder) Msg(msg *flows.MsgIn) *MsgBuilder {
 // WithMatch sets the keyword match for the trigger
 func (b *MsgBuilder) WithMatch(match *KeywordMatch) *MsgBuilder {
 	b.t.match = match
+	return b
+}
+
+// WithConnection sets the channel connection for the trigger
+func (b *MsgBuilder) WithConnection(channel *assets.ChannelReference, urn urns.URN) *MsgBuilder {
+	b.t.connection = flows.NewConnection(channel, urn)
 	return b
 }
 

@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/goflow/excellent/functions"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/test"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -111,6 +110,12 @@ func TestFunctions(t *testing.T) {
 		{"clean", dmy, []types.XValue{xs("😃 Hello \nwo\tr\rld")}, xs("😃 Hello world")},
 		{"clean", dmy, []types.XValue{xs("")}, xs("")},
 		{"clean", dmy, []types.XValue{}, ERROR},
+
+		{"concat", dmy, []types.XValue{xa(xi(1), xi(2)), xa(xi(3), xi(4))}, xa(xi(1), xi(2), xi(3), xi(4))},
+		{"concat", dmy, []types.XValue{xa(), xa()}, xa()},
+		{"concat", dmy, []types.XValue{xa()}, ERROR},
+		{"concat", dmy, []types.XValue{xa(), ERROR}, ERROR},
+		{"concat", dmy, []types.XValue{ERROR, xa()}, ERROR},
 
 		{"date", dmy, []types.XValue{xs("01-12-2017")}, xd(dates.NewDate(2017, 12, 1))},
 		{"date", mdy, []types.XValue{xs("12-01-2017")}, xd(dates.NewDate(2017, 12, 1))},
@@ -343,9 +348,9 @@ func TestFunctions(t *testing.T) {
 
 		{"if", dmy, []types.XValue{types.XBooleanTrue, xs("10"), xs("20")}, xs("10")},
 		{"if", dmy, []types.XValue{types.XBooleanFalse, xs("10"), xs("20")}, xs("20")},
-		{"if", dmy, []types.XValue{types.XBooleanTrue, errorArg, xs("20")}, types.NewXErrorf("error calling IF: I am error")},
+		{"if", dmy, []types.XValue{types.XBooleanTrue, errorArg, xs("20")}, types.NewXErrorf("error calling if(...): I am error")},
 		{"if", dmy, []types.XValue{}, ERROR},
-		{"if", dmy, []types.XValue{errorArg, xs("10"), xs("20")}, types.NewXErrorf("error calling IF: I am error")},
+		{"if", dmy, []types.XValue{errorArg, xs("10"), xs("20")}, types.NewXErrorf("error calling if(...): I am error")},
 
 		{"is_error", dmy, []types.XValue{xs("hello")}, types.XBooleanFalse},
 		{"is_error", dmy, []types.XValue{nil}, types.XBooleanFalse},
@@ -521,20 +526,10 @@ func TestFunctions(t *testing.T) {
 		{"replace_time", dmy, []types.XValue{xdt(time.Date(1977, 06, 23, 15, 34, 0, 0, la)), ERROR}, ERROR},
 		{"replace_time", dmy, []types.XValue{ERROR, xt(dates.NewTimeOfDay(10, 30, 0, 0))}, ERROR},
 
-		{"text_slice", dmy, []types.XValue{xs("hello"), xs("2")}, xs("llo")},
-		{"text_slice", dmy, []types.XValue{xs("foo 😁 bar"), xs("2")}, xs("o 😁 bar")},
-		{"text_slice", dmy, []types.XValue{xs("foo 😁 bar"), xs("2"), xs("9")}, xs("o 😁 bar")},
-		{"text_slice", dmy, []types.XValue{xs("foo 😁 bar"), xs("0"), xs("1")}, xs("f")},
-		{"text_slice", dmy, []types.XValue{xs("hello"), xs("-2")}, xs("lo")},
-		{"text_slice", dmy, []types.XValue{xs("hello"), xs("-7")}, xs("hello")},
-		{"text_slice", dmy, []types.XValue{xs("hello"), xs("7")}, xs("")},
-		{"text_slice", dmy, []types.XValue{xs("hello"), xs("-3"), xs("-1")}, xs("ll")},
-		{"text_slice", dmy, []types.XValue{xs("hello"), xs("7"), xs("-7")}, xs("")},
-		{"text_slice", dmy, []types.XValue{nil, xs("2")}, xs("")},
-		{"text_slice", dmy, []types.XValue{xs("hello"), nil}, ERROR},
-		{"text_slice", dmy, []types.XValue{ERROR, xi(3)}, ERROR},
-		{"text_slice", dmy, []types.XValue{xs("hello"), ERROR}, ERROR},
-		{"text_slice", dmy, []types.XValue{}, ERROR},
+		{"reverse", dmy, []types.XValue{xa()}, xa()},
+		{"reverse", dmy, []types.XValue{xa(xn("3"), xn("1"), xn("2"))}, xa(xn("2"), xn("1"), xn("3"))},
+		{"reverse", dmy, []types.XValue{ERROR}, ERROR},
+		{"reverse", dmy, []types.XValue{}, ERROR},
 
 		{"round", dmy, []types.XValue{xs("10.5"), xs("0")}, xi(11)},
 		{"round", dmy, []types.XValue{xs("10.5"), xs("1")}, xn("10.5")},
@@ -557,6 +552,12 @@ func TestFunctions(t *testing.T) {
 		{"round_up", dmy, []types.XValue{xs("10.2")}, xi(11)},
 		{"round_up", dmy, []types.XValue{xs("not_num")}, ERROR},
 		{"round_up", dmy, []types.XValue{}, ERROR},
+
+		{"sort", dmy, []types.XValue{xa()}, xa()},
+		{"sort", dmy, []types.XValue{xa(xn("3"), xn("1"), xn("2"))}, xa(xn("1"), xn("2"), xn("3"))},
+		{"sort", dmy, []types.XValue{xa(xs("X"), nil)}, ERROR},
+		{"sort", dmy, []types.XValue{ERROR}, ERROR},
+		{"sort", dmy, []types.XValue{}, ERROR},
 
 		{"split", dmy, []types.XValue{xs("1 2   3")}, xa(xs("1"), xs("2"), xs("3"))},
 		{"split", dmy, []types.XValue{xs("1 2,3"), nil}, xa(xs("1"), xs("2"), xs("3"))},
@@ -595,6 +596,21 @@ func TestFunctions(t *testing.T) {
 		{"text_length", dmy, []types.XValue{xi(1234)}, xi(4)},
 		{"text_length", dmy, []types.XValue{ERROR}, ERROR},
 		{"text_length", dmy, []types.XValue{}, ERROR},
+
+		{"text_slice", dmy, []types.XValue{xs("hello"), xs("2")}, xs("llo")},
+		{"text_slice", dmy, []types.XValue{xs("foo 😁 bar"), xs("2")}, xs("o 😁 bar")},
+		{"text_slice", dmy, []types.XValue{xs("foo 😁 bar"), xs("2"), xs("9")}, xs("o 😁 bar")},
+		{"text_slice", dmy, []types.XValue{xs("foo 😁 bar"), xs("0"), xs("1")}, xs("f")},
+		{"text_slice", dmy, []types.XValue{xs("hello"), xs("-2")}, xs("lo")},
+		{"text_slice", dmy, []types.XValue{xs("hello"), xs("-7")}, xs("hello")},
+		{"text_slice", dmy, []types.XValue{xs("hello"), xs("7")}, xs("")},
+		{"text_slice", dmy, []types.XValue{xs("hello"), xs("-3"), xs("-1")}, xs("ll")},
+		{"text_slice", dmy, []types.XValue{xs("hello"), xs("7"), xs("-7")}, xs("")},
+		{"text_slice", dmy, []types.XValue{nil, xs("2")}, xs("")},
+		{"text_slice", dmy, []types.XValue{xs("hello"), nil}, ERROR},
+		{"text_slice", dmy, []types.XValue{ERROR, xi(3)}, ERROR},
+		{"text_slice", dmy, []types.XValue{xs("hello"), ERROR}, ERROR},
+		{"text_slice", dmy, []types.XValue{}, ERROR},
 
 		{"time", dmy, []types.XValue{xs("10:30")}, xt(dates.NewTimeOfDay(10, 30, 0, 0))},
 		{"time", dmy, []types.XValue{xs("12:00 AM")}, xt(dates.NewTimeOfDay(0, 0, 0, 0))},
@@ -645,6 +661,17 @@ func TestFunctions(t *testing.T) {
 		{"tz_offset", dmy, []types.XValue{xs("xxx")}, ERROR},
 		{"tz_offset", dmy, []types.XValue{}, ERROR},
 
+		{"unique", dmy, []types.XValue{xa(xn("1"), xn("3"), xn("2"), xn("3"))}, xa(xn("1"), xn("3"), xn("2"))},
+		{
+			"unique",
+			dmy,
+			[]types.XValue{xa(xa(xs("A"), xs("B"), xs("C")), xa(xs("D"), xs("E"), xs("F")), xa(xs("A"), xs("B"), xs("C")))},
+			xa(xa(xs("A"), xs("B"), xs("C")), xa(xs("D"), xs("E"), xs("F"))),
+		},
+		{"unique", dmy, []types.XValue{xa(nil, xs("X"), nil, xs("X"))}, xa(nil, xs("X"))},
+		{"unique", dmy, []types.XValue{ERROR}, ERROR},
+		{"unique", dmy, []types.XValue{}, ERROR},
+
 		{"upper", dmy, []types.XValue{xs("HEllo")}, xs("HELLO")},
 		{"upper", dmy, []types.XValue{xs("  HELLO  world")}, xs("  HELLO  WORLD")},
 		{"upper", dmy, []types.XValue{xs("ß")}, xs("ß")},
@@ -688,6 +715,7 @@ func TestFunctions(t *testing.T) {
 		{"word_slice", dmy, []types.XValue{xs("hello-world from mars"), xs("x"), xi(3)}, ERROR},
 		{"word_slice", dmy, []types.XValue{xs("hello-world from mars"), xi(3), xs("x")}, ERROR},
 		{"word_slice", dmy, []types.XValue{xs("hello-world from mars"), ERROR, xi(2)}, ERROR},
+		{"word_slice", dmy, []types.XValue{xs("post_special_chars_to_webhook"), xi(1), xi(2), xs("_")}, xs("special")},
 		{"word_slice", dmy, []types.XValue{xs("bee.*cat,dog"), xi(1), xi(-1), xs(".*=|,")}, xs("cat dog")},
 		{"word_slice", dmy, []types.XValue{xs("bee.*cat,dog"), xi(1), xi(-1), ERROR}, ERROR}, // delimiters is error
 		{"word_slice", dmy, []types.XValue{ERROR, xi(0), xi(2)}, ERROR},                      // input is error
@@ -731,7 +759,7 @@ func TestFunctions(t *testing.T) {
 		xFunc := functions.Lookup(tc.name)
 		require.NotNil(t, "no such registered function: %s", tc.name)
 
-		result := functions.Call(tc.env, tc.name, xFunc, tc.args)
+		result := xFunc.Call(tc.env, tc.args)
 
 		// don't check error equality - just check that we got an error if we expected one
 		if tc.expected == ERROR {

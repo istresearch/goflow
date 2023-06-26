@@ -7,7 +7,6 @@ import (
 
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/utils"
-
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 )
@@ -107,12 +106,16 @@ func (x XNumber) String() string { return `XNumber(` + x.Render() + `)` }
 func (x XNumber) Native() decimal.Decimal { return x.native }
 
 // Equals determines equality for this type
-func (x XNumber) Equals(other XNumber) bool {
+func (x XNumber) Equals(o XValue) bool {
+	other := o.(XNumber)
+
 	return x.Native().Equals(other.Native())
 }
 
 // Compare compares this number to another
-func (x XNumber) Compare(other XNumber) int {
+func (x XNumber) Compare(o XValue) int {
+	other := o.(XNumber)
+
 	return x.Native().Cmp(other.Native())
 }
 
@@ -138,10 +141,10 @@ func newXNumberFromString(s string) (XNumber, error) {
 	if !decimalRegexp.MatchString(s) {
 		return XNumberZero, errors.New("not a valid number format")
 	}
-	d, err := decimal.NewFromString(s)
-	if err != nil {
-		return XNumberZero, err
-	}
+
+	// we can assume anything that matched our regex is parseable
+	d := decimal.RequireFromString(s)
+
 	return NewXNumber(d), nil
 }
 

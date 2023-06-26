@@ -16,18 +16,18 @@ type TicketUUID uuids.UUID
 type Ticket struct {
 	uuid       TicketUUID
 	ticketer   *Ticketer
-	subject    string
+	topic      *Topic
 	body       string
 	externalID string
 	assignee   *User
 }
 
 // NewTicket creates a new ticket
-func NewTicket(uuid TicketUUID, ticketer *Ticketer, subject, body, externalID string, assignee *User) *Ticket {
+func NewTicket(uuid TicketUUID, ticketer *Ticketer, topic *Topic, body, externalID string, assignee *User) *Ticket {
 	return &Ticket{
 		uuid:       uuid,
 		ticketer:   ticketer,
-		subject:    subject,
+		topic:      topic,
 		body:       body,
 		externalID: externalID,
 		assignee:   assignee,
@@ -35,13 +35,13 @@ func NewTicket(uuid TicketUUID, ticketer *Ticketer, subject, body, externalID st
 }
 
 // OpenTicket creates a new ticket. Used by ticketing services to open a new ticket.
-func OpenTicket(ticketer *Ticketer, subject, body string) *Ticket {
-	return NewTicket(TicketUUID(uuids.New()), ticketer, subject, body, "", nil)
+func OpenTicket(ticketer *Ticketer, topic *Topic, body string, assignee *User) *Ticket {
+	return NewTicket(TicketUUID(uuids.New()), ticketer, topic, body, "", assignee)
 }
 
 func (t *Ticket) UUID() TicketUUID        { return t.uuid }
 func (t *Ticket) Ticketer() *Ticketer     { return t.ticketer }
-func (t *Ticket) Subject() string         { return t.subject }
+func (t *Ticket) Topic() *Topic           { return t.topic }
 func (t *Ticket) Body() string            { return t.body }
 func (t *Ticket) ExternalID() string      { return t.externalID }
 func (t *Ticket) SetExternalID(id string) { t.externalID = id }
@@ -57,7 +57,7 @@ func (t *Ticket) Assignee() *User         { return t.assignee }
 func (t *Ticket) Context(env envs.Environment) map[string]types.XValue {
 	return map[string]types.XValue{
 		"uuid":     types.NewXText(string(t.uuid)),
-		"subject":  types.NewXText(t.subject),
+		"topic":    Context(env, t.topic),
 		"body":     types.NewXText(t.body),
 		"assignee": Context(env, t.assignee),
 	}
@@ -70,7 +70,7 @@ func (t *Ticket) Context(env envs.Environment) map[string]types.XValue {
 type ticketEnvelope struct {
 	UUID       TicketUUID                `json:"uuid"                   validate:"required,uuid4"`
 	Ticketer   *assets.TicketerReference `json:"ticketer"               validate:"omitempty,dive"`
-	Subject    string                    `json:"subject"`
+	Topic      *assets.TopicReference    `json:"topic"                  validate:"omitempty,dive"`
 	Body       string                    `json:"body"`
 	ExternalID string                    `json:"external_id,omitempty"`
 	Assignee   *assets.UserReference     `json:"assignee,omitempty"     validate:"omitempty,dive"`
@@ -90,6 +90,14 @@ func ReadTicket(sa SessionAssets, data []byte, missing assets.MissingCallback) (
 		missing(e.Ticketer, nil)
 	}
 
+	var topic *Topic
+	if e.Topic != nil {
+		topic = sa.Topics().Get(e.Topic.UUID)
+		if topic == nil {
+			missing(e.Topic, nil)
+		}
+	}
+
 	var assignee *User
 	if e.Assignee != nil {
 		assignee = sa.Users().Get(e.Assignee.Email)
@@ -101,7 +109,7 @@ func ReadTicket(sa SessionAssets, data []byte, missing assets.MissingCallback) (
 	return &Ticket{
 		uuid:       e.UUID,
 		ticketer:   ticketer,
-		subject:    e.Subject,
+		topic:      topic,
 		body:       e.Body,
 		externalID: e.ExternalID,
 		assignee:   assignee,
@@ -115,6 +123,11 @@ func (t *Ticket) MarshalJSON() ([]byte, error) {
 		ticketerRef = t.ticketer.Reference()
 	}
 
+	var topicRef *assets.TopicReference
+	if t.topic != nil {
+		topicRef = t.topic.Reference()
+	}
+
 	var assigneeRef *assets.UserReference
 	if t.assignee != nil {
 		assigneeRef = t.assignee.Reference()
@@ -123,7 +136,7 @@ func (t *Ticket) MarshalJSON() ([]byte, error) {
 	return jsonx.Marshal(&ticketEnvelope{
 		UUID:       t.uuid,
 		Ticketer:   ticketerRef,
-		Subject:    t.subject,
+		Topic:      topicRef,
 		Body:       t.body,
 		ExternalID: t.externalID,
 		Assignee:   assigneeRef,

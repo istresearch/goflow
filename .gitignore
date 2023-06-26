@@ -5,10 +5,12 @@
 *.a
 *.so
 *.pyc
+.idea
 
 # Folders
 _obj
 _test
+_*
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -30,9 +32,9 @@ debug
 .DS_Store
 /docs
 
+deploy
 fabric
 fabfile.*
 fabconfig.*
 
 antlr/.antlr
-.idea

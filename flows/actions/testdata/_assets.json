@@ -191,6 +191,11 @@
             "uuid": "5389414a-66b8-408b-afec-07c5d68f6784",
             "name": "Nameless",
             "query": "name = \"\""
+        },
+        {
+            "uuid": "91564dee-e7ea-49b2-a903-598ce71b1d07",
+            "name": "With Tickets",
+            "query": "tickets > 0"
         }
     ],
     "labels": [
@@ -221,8 +226,8 @@
     ],
     "templates": [
         {
-            "name": "affirmation",
             "uuid": "5722e1fd-fe32-4e74-ac78-3cf41a6adb7e",
+            "name": "affirmation",
             "translations": [
                 {
                     "channel": {
@@ -244,8 +249,8 @@
             ]
         },
         {
-            "name": "wakeup",
             "uuid": "2edc8dfd-aef0-41cf-a900-8a71bdb00900",
+            "name": "wakeup",
             "translations": [
                 {
                     "channel": {
@@ -263,6 +268,30 @@
             "uuid": "d605bb96-258d-4097-ad0a-080937db2212",
             "name": "Support Tickets",
             "type": "mailgun"
+        }
+    ],
+    "topics": [
+        {
+            "uuid": "0d9a2c56-6fc2-4f27-93c5-a6322e26b740",
+            "name": "General"
+        },
+        {
+            "uuid": "472a7a73-96cb-4736-b567-056d987cc5b4",
+            "name": "Weather"
+        },
+        {
+            "uuid": "daa356b6-32af-44f0-9d35-6126d55ec3e9",
+            "name": "Computers"
+        }
+    ],
+    "users": [
+        {
+            "email": "bob@nyaruka.com",
+            "name": "Bob"
+        },
+        {
+            "email": "jim@nyaruka.com",
+            "name": "Jim"
         }
     ]
 }

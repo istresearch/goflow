@@ -7,7 +7,6 @@ import (
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/utils"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -128,6 +127,17 @@ func TestReferences(t *testing.T) {
 	// ticketer references must always be concrete
 	assert.EqualError(t, utils.Validate(assets.NewTicketerReference("", "Booking")), "field 'uuid' is required")
 
+	topicRef := assets.NewTopicReference("61602f3e-f603-4c70-8a8f-c477505bf4bf", "Weather")
+	assert.Equal(t, "topic", topicRef.Type())
+	assert.Equal(t, "61602f3e-f603-4c70-8a8f-c477505bf4bf", topicRef.Identity())
+	assert.Equal(t, uuids.UUID("61602f3e-f603-4c70-8a8f-c477505bf4bf"), topicRef.GenericUUID())
+	assert.Equal(t, "topic[uuid=61602f3e-f603-4c70-8a8f-c477505bf4bf,name=Weather]", topicRef.String())
+	assert.False(t, topicRef.Variable())
+	assert.NoError(t, utils.Validate(topicRef))
+
+	// topic references must always be concrete
+	assert.EqualError(t, utils.Validate(assets.NewTopicReference("", "Weather")), "field 'uuid' is required")
+
 	userRef := assets.NewUserReference("bob@nyaruka.com", "Bob")
 	assert.Equal(t, "user", userRef.Type())
 	assert.Equal(t, "bob@nyaruka.com", userRef.Identity())
@@ -135,8 +145,20 @@ func TestReferences(t *testing.T) {
 	assert.False(t, userRef.Variable())
 	assert.NoError(t, utils.Validate(userRef))
 
-	// user references must always be concrete
-	assert.EqualError(t, utils.Validate(assets.NewUserReference("", "Jim")), "field 'email' is required")
+	// user references can be concrete or an email match template
+	assert.NoError(t, utils.Validate(assets.NewVariableUserReference("@contact.fields.supervisor")))
+
+	// but they can't be neither or both of those things
+	assert.EqualError(t,
+		utils.Validate(&assets.UserReference{}),
+		"field 'email' is mutually exclusive with 'email_match', field 'email_match' is mutually exclusive with 'email'",
+	)
+	assert.EqualError(t,
+		utils.Validate(&assets.UserReference{
+			Email: "bob@nyaruka.com",
+			Name:  "Bob", EmailMatch: "@contact.fields.supervisor"}),
+		"field 'email' is mutually exclusive with 'email_match', field 'email_match' is mutually exclusive with 'email'",
+	)
 }
 
 func TestChannelReferenceUnmarsal(t *testing.T) {
@@ -171,8 +193,8 @@ func TestUserReferenceUnmarsal(t *testing.T) {
 	assert.EqualError(t, err, "unexpected end of JSON input")
 
 	// or invalid object
-	err = utils.UnmarshalAndValidate([]byte(`{"email": ""}`), user)
-	assert.EqualError(t, err, "field 'email' is required")
+	err = utils.UnmarshalAndValidate([]byte(`{"email": "!!!!"}`), user)
+	assert.EqualError(t, err, "field 'email' is not a valid email address")
 }
 
 func TestTypedReference(t *testing.T) {

@@ -1,7 +1,7 @@
 package mobile_test
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/nyaruka/gocommon/uuids"
@@ -29,7 +29,7 @@ func TestMobileBindings(t *testing.T) {
 	assert.Error(t, err)
 
 	// can load a standard assets file
-	assetsJSON, err := ioutil.ReadFile("../test/testdata/runner/two_questions_offline.json")
+	assetsJSON, err := os.ReadFile("../test/testdata/runner/two_questions_offline.json")
 	require.NoError(t, err)
 
 	source, err := mobile.NewAssetsSource(string(assetsJSON))
@@ -64,10 +64,6 @@ func TestMobileBindings(t *testing.T) {
 
 	modifiers := sprint.Modifiers()
 	assert.Equal(t, 0, modifiers.Length())
-
-	wait := session.GetWait()
-	assert.Equal(t, "msg", wait.Type())
-	assert.Nil(t, wait.Hint())
 
 	attachments := mobile.NewStringSlice(1)
 	attachments.Add("content://io.rapidpro.surveyor/files/selfie.jpg")

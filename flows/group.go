@@ -14,6 +14,7 @@ type Group struct {
 	assets.Group
 
 	parsedQuery *contactql.ContactQuery
+	resolver    contactql.Resolver
 }
 
 // NewGroup returns a new group object from the given group asset
@@ -24,7 +25,7 @@ func NewGroup(env envs.Environment, fields *FieldAssets, asset assets.Group) (*G
 			return nil, err
 		}
 
-		return &Group{Group: asset, parsedQuery: query}, nil
+		return &Group{Group: asset, parsedQuery: query, resolver: fields}, nil
 	}
 
 	return &Group{Group: asset}, nil
@@ -37,13 +38,13 @@ func (g *Group) Asset() assets.Group { return g.Group }
 func (g *Group) UsesQuery() bool { return g.Query() != "" }
 
 // CheckQueryBasedMembership returns whether the given contact belongs in a query based group
-func (g *Group) CheckQueryBasedMembership(env envs.Environment, contact *Contact) (bool, error) {
+func (g *Group) CheckQueryBasedMembership(env envs.Environment, contact *Contact) bool {
 	if !g.UsesQuery() {
 		panic("can't check membership on a non-query based group")
 	}
 
 	if contact.Status() != ContactStatusActive {
-		return false, nil
+		return false
 	}
 
 	return contactql.EvaluateQuery(env, g.parsedQuery, contact)
@@ -134,6 +135,11 @@ func (l *GroupList) Remove(group *Group) bool {
 		}
 	}
 	return false
+}
+
+// Clear clears this group list
+func (l *GroupList) Clear() {
+	l.groups = []*Group{}
 }
 
 // All returns all groups in this group list

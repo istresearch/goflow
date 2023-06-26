@@ -3,7 +3,9 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
@@ -57,6 +59,16 @@ var sessionAssets = `{
             "uuid": "19dc6346-9623-4fe4-be80-538d493ecdf5",
             "name": "Support Tickets",
             "type": "mailgun"
+        }
+    ],
+    "topics": [
+        {
+            "uuid": "472a7a73-96cb-4736-b567-056d987cc5b4",
+            "name": "Weather"
+        },
+        {
+            "uuid": "daa356b6-32af-44f0-9d35-6126d55ec3e9",
+            "name": "Computers"
         }
     ],
     "flows": [
@@ -329,6 +341,10 @@ var sessionTrigger = `{
                     "name": "Support Tickets",
                     "uuid": "19dc6346-9623-4fe4-be80-538d493ecdf5"
                 },
+                "topic": {
+                    "uuid": "472a7a73-96cb-4736-b567-056d987cc5b4",
+                    "name": "Weather"
+                },
                 "assignee": {"email": "bob@nyaruka.com", "name": "Bob"}
             }
         ]
@@ -575,24 +591,134 @@ func CreateSessionAssets(assetsJSON json.RawMessage, testServerURL string) (flow
 	return sa, nil
 }
 
-// CreateSession creates a new session from the give assets
-func CreateSession(assetsJSON json.RawMessage, flowUUID assets.FlowUUID) (flows.Session, flows.Sprint, error) {
-	sa, err := CreateSessionAssets(assetsJSON, "")
-	if err != nil {
-		return nil, nil, err
+type SessionBuilder struct {
+	env         envs.Environment
+	assetsJSON  []byte
+	assetsPath  string
+	flowUUID    assets.FlowUUID
+	engine      flows.Engine
+	contactUUID flows.ContactUUID
+	contactID   flows.ContactID
+	contactName string
+	contactLang envs.Language
+	contactURN  urns.URN
+	triggerMsg  string
+}
+
+func NewSessionBuilder() *SessionBuilder {
+	env := envs.NewBuilder().
+		WithDateFormat(envs.DateFormatDayMonthYear).
+		WithDefaultCountry("US").
+		WithAllowedLanguages([]envs.Language{"eng", "spa"}).
+		Build()
+
+	return &SessionBuilder{
+		env:         env,
+		assetsJSON:  []byte(sessionAssets),
+		flowUUID:    "50c3706e-fedb-42c0-8eab-dda3335714b7",
+		engine:      NewEngine(),
+		contactUUID: flows.ContactUUID(uuids.New()),
+		contactID:   flows.ContactID(123),
+		contactName: "Bob",
+		contactLang: "eng",
+		contactURN:  "tel:+12065551212",
+	}
+}
+
+func (b *SessionBuilder) WithEnvironment(env envs.Environment) *SessionBuilder {
+	b.env = env
+	return b
+}
+
+func (b *SessionBuilder) WithAssetsPath(path string) *SessionBuilder {
+	b.assetsPath = path
+	return b
+}
+
+func (b *SessionBuilder) WithAssets(assetsJSON []byte) *SessionBuilder {
+	b.assetsJSON = assetsJSON
+	return b
+}
+
+func (b *SessionBuilder) WithFlow(flowUUID assets.FlowUUID) *SessionBuilder {
+	b.flowUUID = flowUUID
+	return b
+}
+
+func (b *SessionBuilder) WithContact(uuid flows.ContactUUID, id flows.ContactID, name string, lang envs.Language, urn urns.URN) *SessionBuilder {
+	b.contactUUID = uuid
+	b.contactID = id
+	b.contactName = name
+	b.contactLang = lang
+	b.contactURN = urn
+	return b
+}
+
+func (b *SessionBuilder) WithTriggerMsg(text string) *SessionBuilder {
+	b.triggerMsg = text
+	return b
+}
+
+func (b *SessionBuilder) Build() (flows.Session, flows.Sprint, error) {
+	var err error
+	if b.assetsPath != "" {
+		b.assetsJSON, err = os.ReadFile(b.assetsPath)
+		if err != nil {
+			errors.Wrapf(err, "error reading assets from %s", b.assetsPath)
+		}
 	}
 
-	flow, err := sa.Flows().Get(flowUUID)
+	sa, err := CreateSessionAssets(b.assetsJSON, "")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "error creating session assets")
 	}
 
-	env := envs.NewBuilder().Build()
-	contact := flows.NewEmptyContact(sa, "Bob", envs.NilLanguage, nil)
-	trigger := triggers.NewBuilder(env, flow.Reference(), contact).Manual().Build()
-	eng := engine.NewBuilder().Build()
+	flow, err := sa.Flows().Get(b.flowUUID)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error getting flow %s from assets", b.flowUUID)
+	}
 
-	return eng.NewSession(sa, trigger)
+	var urnz []urns.URN
+	if b.contactURN != "" {
+		urnz = []urns.URN{b.contactURN}
+	}
+
+	contact, err := flows.NewContact(sa,
+		b.contactUUID,
+		b.contactID,
+		b.contactName,
+		b.contactLang,
+		flows.ContactStatusActive,
+		nil,
+		time.Date(2020, 1, 1, 12, 45, 30, 123456, time.UTC),
+		nil,
+		urnz,
+		nil,
+		nil,
+		nil,
+		assets.PanicOnMissing,
+	)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error creating contact")
+	}
+
+	var trigger flows.Trigger
+	if b.triggerMsg != "" {
+		msg := flows.NewMsgIn(flows.MsgUUID(uuids.New()), urns.URN("tel:+12065551212"), nil, b.triggerMsg, nil)
+		trigger = triggers.NewBuilder(b.env, flow.Reference(), contact).Msg(msg).Build()
+	} else {
+		trigger = triggers.NewBuilder(b.env, flow.Reference(), contact).Manual().Build()
+	}
+
+	return b.engine.NewSession(sa, trigger)
+}
+
+func (b *SessionBuilder) MustBuild() (flows.Session, flows.Sprint) {
+	session, sprint, err := b.Build()
+	if err != nil {
+		panic(err)
+	}
+	return session, sprint
 }
 
 // ResumeSession resumes the given session with potentially different assets

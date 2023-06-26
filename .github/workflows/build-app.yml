@@ -36,6 +36,7 @@ jobs:
           TEST_NAME: "Unit Tests"
         run: |-
           set +e
+          set -o pipefail
           go test ./... 2>&1 | tee test-results.txt
           set -e
           S=$? #non-0 means error
