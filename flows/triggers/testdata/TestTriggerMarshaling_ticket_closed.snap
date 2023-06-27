@@ -34,7 +34,7 @@
                 "uuid": "19dc6346-9623-4fe4-be80-538d493ecdf5",
                 "name": "Support Tickets"
             },
-            "subject": "Problem",
+            "topic": null,
             "body": "Where are my shoes?",
             "external_id": "123456",
             "assignee": {

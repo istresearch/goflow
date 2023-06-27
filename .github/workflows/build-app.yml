@@ -17,6 +17,8 @@ jobs:
           sudo apt -y update && sudo apt -y install pandoc gettext
 
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: "Set up Go"
         uses: actions/setup-go@v3
@@ -34,6 +36,7 @@ jobs:
           TEST_NAME: "Unit Tests"
         run: |-
           set +e
+          set -o pipefail
           go test ./... 2>&1 | tee test-results.txt
           set -e
           S=$? #non-0 means error

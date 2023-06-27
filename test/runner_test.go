@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -51,7 +51,7 @@ func (t runnerTest) String() string {
 
 func loadTestCases() ([]runnerTest, error) {
 	directory := "testdata/runner/"
-	files, err := ioutil.ReadDir(directory)
+	files, err := os.ReadDir(directory)
 	if err != nil {
 		return nil, errors.Wrap(err, "error reading test directory")
 	}
@@ -75,22 +75,19 @@ func loadTestCases() ([]runnerTest, error) {
 	return tests, nil
 }
 
-func marshalEventLog(eventLog []flows.Event) ([]json.RawMessage, error) {
+func marshalEventLog(eventLog []flows.Event) []json.RawMessage {
 	marshaled := make([]json.RawMessage, len(eventLog))
-	var err error
 
 	for i := range eventLog {
-		marshaled[i], err = jsonx.Marshal(eventLog[i])
-		if err != nil {
-			return nil, errors.Wrap(err, "error marshaling event")
-		}
+		marshaled[i] = jsonx.MustMarshal(eventLog[i])
 	}
-	return marshaled, nil
+	return marshaled
 }
 
 type Output struct {
-	Session json.RawMessage   `json:"session"`
-	Events  []json.RawMessage `json:"events"`
+	Session  json.RawMessage   `json:"session"`
+	Events   []json.RawMessage `json:"events"`
+	Segments json.RawMessage   `json:"segments"`
 }
 
 type FlowTest struct {
@@ -146,20 +143,20 @@ func runFlow(assetsPath string, rawTrigger json.RawMessage, rawResumes []json.Ra
 		if err != nil {
 			return runResult{}, errors.Wrap(err, "error marshalling output")
 		}
-		marshalledEvents, err := marshalEventLog(sprint.Events())
-		if err != nil {
-			return runResult{}, err
-		}
 
-		outputs = append(outputs, &Output{sessionJSON, marshalledEvents})
+		outputs = append(outputs, &Output{
+			Session:  sessionJSON,
+			Events:   marshalEventLog(sprint.Events()),
+			Segments: jsonx.MustMarshal(sprint.Segments()),
+		})
 
 		session, err = eng.ReadSession(sa, sessionJSON, assets.PanicOnMissing)
 		if err != nil {
 			return runResult{}, errors.Wrap(err, "error marshalling output")
 		}
 
-		// if we aren't at a wait, that's an error
-		if session.Wait() == nil {
+		// if session isn't waiting for another resume, that's an error
+		if session.Status() != flows.SessionStatusWaiting {
 			return runResult{}, errors.Errorf("did not stop at expected wait, have unused resumes: %d", len(rawResumes[i:]))
 		}
 
@@ -179,12 +176,11 @@ func runFlow(assetsPath string, rawTrigger json.RawMessage, rawResumes []json.Ra
 		return runResult{}, errors.Wrap(err, "error marshalling output")
 	}
 
-	marshalledEvents, err := marshalEventLog(sprint.Events())
-	if err != nil {
-		return runResult{}, err
-	}
-
-	outputs = append(outputs, &Output{sessionJSON, marshalledEvents})
+	outputs = append(outputs, &Output{
+		Session:  sessionJSON,
+		Events:   marshalEventLog(sprint.Events()),
+		Segments: jsonx.MustMarshal(sprint.Segments()),
+	})
 
 	return runResult{session, outputs}, nil
 }
@@ -207,7 +203,7 @@ func TestFlows(t *testing.T) {
 		dates.SetNowSource(dates.NewSequentialNowSource(time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC)))
 		smtpx.SetSender(smtpx.NewMockSender(nil, nil, nil, nil, nil, nil))
 
-		testJSON, err := ioutil.ReadFile(tc.outputFile)
+		testJSON, err := os.ReadFile(tc.outputFile)
 		require.NoError(t, err, "error reading output file %s", tc.outputFile)
 
 		flowTest := &FlowTest{}
@@ -243,7 +239,7 @@ func TestFlows(t *testing.T) {
 			testJSON, _ = NormalizeJSON(testJSON)
 
 			// write our output
-			err = ioutil.WriteFile(tc.outputFile, testJSON, 0644)
+			err = os.WriteFile(tc.outputFile, testJSON, 0644)
 			require.NoError(t, err, "Error writing test file to %s: %s", tc.outputFile, err)
 		} else {
 			// start by checking we have the expected number of outputs
@@ -259,15 +255,20 @@ func TestFlows(t *testing.T) {
 				require.NoError(t, err, "error unmarshalling output")
 
 				// first the session
-				if !AssertEqualJSON(t, expected.Session, actual.Session, fmt.Sprintf("session is different in output[%d] in %s", i, tc)) {
+				if !AssertEqualJSON(t, expected.Session, actual.Session, "session is different in output[%d] in %s", i, tc) {
 					break
 				}
 
 				// and then each event
 				for j := range actual.Events {
-					if !AssertEqualJSON(t, expected.Events[j], actual.Events[j], fmt.Sprintf("event[%d] is different in output[%d] in %s", j, i, tc)) {
+					if !AssertEqualJSON(t, expected.Events[j], actual.Events[j], "event[%d] is different in output[%d] in %s", j, i, tc) {
 						break
 					}
+				}
+
+				// and finally the path segments
+				if !AssertEqualJSON(t, expected.Segments, actual.Segments, "segments are different in output[%d] in %s", i, tc) {
+					break
 				}
 			}
 		}
@@ -279,7 +280,7 @@ func BenchmarkFlows(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		for _, tc := range testCases {
-			testJSON, err := ioutil.ReadFile(tc.outputFile)
+			testJSON, err := os.ReadFile(tc.outputFile)
 			require.NoError(b, err, "error reading output file %s", tc.outputFile)
 
 			flowTest := &FlowTest{}

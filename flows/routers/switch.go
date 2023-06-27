@@ -117,7 +117,7 @@ func (r *SwitchRouter) Validate(flow flows.Flow, exits []flows.Exit) error {
 }
 
 // Route determines which exit to take from a node
-func (r *SwitchRouter) Route(run flows.FlowRun, step flows.Step, logEvent flows.EventCallback) (flows.ExitUUID, error) {
+func (r *SwitchRouter) Route(run flows.Run, step flows.Step, logEvent flows.EventCallback) (flows.ExitUUID, string, error) {
 	env := run.Environment()
 
 	// first evaluate our operand
@@ -126,17 +126,17 @@ func (r *SwitchRouter) Route(run flows.FlowRun, step flows.Step, logEvent flows.
 		run.LogError(step, err)
 	}
 
-	var input string
+	var operandAsStr string
 
 	if operand != nil {
 		asText, _ := types.ToXText(env, operand)
-		input = asText.Native()
+		operandAsStr = asText.Native()
 	}
 
 	// find first matching case
 	match, categoryUUID, extra, err := r.matchCase(run, step, operand)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// none of our cases matched, so try to use the default
@@ -151,10 +151,11 @@ func (r *SwitchRouter) Route(run flows.FlowRun, step flows.Step, logEvent flows.
 		categoryUUID = r.defaultCategoryUUID
 	}
 
-	return r.routeToCategory(run, step, categoryUUID, match, input, extra, logEvent)
+	exit, err := r.routeToCategory(run, step, categoryUUID, match, operandAsStr, extra, logEvent)
+	return exit, operandAsStr, err
 }
 
-func (r *SwitchRouter) matchCase(run flows.FlowRun, step flows.Step, operand types.XValue) (string, flows.CategoryUUID, *types.XObject, error) {
+func (r *SwitchRouter) matchCase(run flows.Run, step flows.Step, operand types.XValue) (string, flows.CategoryUUID, *types.XObject, error) {
 	for _, c := range r.cases {
 		test := strings.ToLower(c.Type)
 
@@ -178,13 +179,13 @@ func (r *SwitchRouter) matchCase(run flows.FlowRun, step flows.Step, operand typ
 		}
 
 		// call our function
-		result := xtest(run.Environment(), args...)
+		result := xtest.Call(run.Environment(), args)
 
 		// tests have to return either errors or test results
 		switch typed := result.(type) {
 		case types.XError:
 			// test functions can return an error
-			run.LogError(step, errors.Errorf("error calling test %s: %s", strings.ToUpper(test), typed.Error()))
+			run.LogError(step, errors.Errorf("error calling test %s: %s", xtest.Describe(), typed.Error()))
 		case *types.XObject:
 			matched := typed.Truthy()
 			if !matched {

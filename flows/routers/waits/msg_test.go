@@ -4,14 +4,10 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/gocommon/uuids"
-	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/routers/waits"
 	"github.com/nyaruka/goflow/flows/routers/waits/hints"
-	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
 
 	"github.com/stretchr/testify/assert"
@@ -65,6 +61,9 @@ func TestMsgWait(t *testing.T) {
 	marshaled := jsonx.MustMarshal(wait)
 	assert.Equal(t, `{"type":"msg"}`, string(marshaled))
 
+	// try to end with timeout resume type
+	assert.False(t, wait.Accepts(resumes.NewWaitTimeout(nil, nil)))
+
 	// timeout and image hint
 	wait = waits.NewMsgWait(
 		waits.NewTimeout(5, flows.CategoryUUID("63fca57d-5ef6-4afd-9bcd-7bdcf653cea8")),
@@ -78,62 +77,36 @@ func TestMsgWait(t *testing.T) {
 
 	// try activating the wait
 	log := test.NewEventLog()
-	activated := wait.Begin(run, log.Log)
+	begun := wait.Begin(run, log.Log)
 
-	assert.Equal(t, "msg", activated.Type())
+	assert.True(t, begun)
 	assert.Equal(t, 1, len(log.Events))
 	assert.Equal(t, "msg_wait", log.Events[0].Type())
 
-	// test marsalling activated wait
-	marshaled, err = jsonx.Marshal(activated)
-	assert.NoError(t, err)
-	assert.Equal(t, `{"type":"msg","timeout_seconds":5,"hint":{"type":"image"}}`, string(marshaled))
-
 	// try to end with incorrect resume type
-	err = wait.End(resumes.NewDial(nil, nil, flows.NewDial(flows.DialStatusBusy, 0)))
-	assert.EqualError(t, err, "can't end a wait of type 'msg' with a resume of type 'dial'")
+	assert.False(t, wait.Accepts(resumes.NewDial(nil, nil, flows.NewDial(flows.DialStatusBusy, 0))))
 
-	// try to end with timeout resume type
-	err = wait.End(resumes.NewWaitTimeout(nil, nil))
-	assert.NoError(t, err)
+	// can end with timeout resume type
+	assert.True(t, wait.Accepts(resumes.NewWaitTimeout(nil, nil)))
 }
 
 func TestMsgWaitSkipIfInitial(t *testing.T) {
-	eng := test.NewEngine()
-	env := envs.NewBuilder().Build()
-	sa, flow := initializeSessionAssets(t)
-	contact := flows.NewEmptyContact(sa, "Ben Haggerty", envs.Language("eng"), nil)
-
 	// a manual trigger will wait at the initial wait
-	trigger := triggers.NewBuilder(env, flow.Reference(), contact).Manual().Build()
-
-	session, sprint, err := eng.NewSession(sa, trigger)
-	require.NoError(t, err)
+	session, sprint := test.NewSessionBuilder().WithAssets([]byte(initialWaitJSON)).
+		WithFlow("615b8a0f-588c-4d20-a05f-363b0b4ce6f4").
+		MustBuild()
 
 	assert.Equal(t, flows.SessionStatusWaiting, session.Status())
 	assert.Equal(t, 1, len(sprint.Events()))
 	assert.Equal(t, "msg_wait", sprint.Events()[0].Type())
 
-	sa, flow = initializeSessionAssets(t)
-
 	// whereas a msg trigger will skip over it
-	msg := flows.NewMsgIn(flows.MsgUUID(uuids.New()), urns.NilURN, nil, "Hi there", nil)
-	trigger2 := triggers.NewBuilder(env, flow.Reference(), contact).Msg(msg).Build()
-
-	session, sprint, err = eng.NewSession(sa, trigger2)
-	require.NoError(t, err)
+	session, sprint = test.NewSessionBuilder().WithAssets([]byte(initialWaitJSON)).
+		WithFlow("615b8a0f-588c-4d20-a05f-363b0b4ce6f4").
+		WithTriggerMsg("Hi there").
+		MustBuild()
 
 	assert.Equal(t, flows.SessionStatusCompleted, session.Status())
 	assert.Equal(t, 1, len(sprint.Events()))
 	assert.Equal(t, "msg_received", sprint.Events()[0].Type())
-}
-
-func initializeSessionAssets(t *testing.T) (flows.SessionAssets, flows.Flow) {
-	sa, err := test.CreateSessionAssets([]byte(initialWaitJSON), "")
-	require.NoError(t, err)
-
-	flow, err := sa.Flows().Get("615b8a0f-588c-4d20-a05f-363b0b4ce6f4")
-	require.NoError(t, err)
-
-	return sa, flow
 }

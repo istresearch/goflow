@@ -1,6 +1,6 @@
 grammar Excellent2;
 
-// rebuild with % antlr -Dlanguage=Go Excellent2.g4 -o ../excellent/gen -package gen -visitor
+// kept for historical records
 
 import LexUnicode;
 

@@ -18,7 +18,7 @@ var invalidLegacyExtraKeyChars = regexp.MustCompile(`[^a-zA-Z0-9_]`)
 // keys in legacy @extra have non-word chars replaced with underscores and are limited to 255 chars
 func legacyExtraKey(key string) string {
 	key = invalidLegacyExtraKeyChars.ReplaceAllString(strings.ToLower(key), "_")
-	return key[0:utils.MinInt(len(key), 255)]
+	return key[0:utils.Min(len(key), 255)]
 }
 
 type legacyExtra struct {
@@ -26,7 +26,7 @@ type legacyExtra struct {
 }
 
 // creates a new legacy extra which will be lazily initialized on first call to .update()
-func newLegacyExtra(run flows.FlowRun) *legacyExtra {
+func newLegacyExtra(run flows.Run) *legacyExtra {
 	e := &legacyExtra{values: make(map[string]types.XValue)}
 
 	// if trigger params is set, we include it in @extra

@@ -56,7 +56,7 @@ func (a *RemoveContactGroupsAction) Validate() error {
 }
 
 // Execute runs the action
-func (a *RemoveContactGroupsAction) Execute(run flows.FlowRun, step flows.Step, logModifier flows.ModifierCallback, logEvent flows.EventCallback) error {
+func (a *RemoveContactGroupsAction) Execute(run flows.Run, step flows.Step, logModifier flows.ModifierCallback, logEvent flows.EventCallback) error {
 	contact := run.Contact()
 	if contact == nil {
 		logEvent(events.NewErrorf("can't execute action in session without a contact"))
@@ -64,7 +64,6 @@ func (a *RemoveContactGroupsAction) Execute(run flows.FlowRun, step flows.Step, 
 	}
 
 	var groups []*flows.Group
-	var err error
 
 	if a.AllGroups {
 		for _, group := range run.Session().Assets().Groups().All() {
@@ -73,9 +72,7 @@ func (a *RemoveContactGroupsAction) Execute(run flows.FlowRun, step flows.Step, 
 			}
 		}
 	} else {
-		if groups, err = resolveGroups(run, a.Groups, logEvent); err != nil {
-			return err
-		}
+		groups = resolveGroups(run, a.Groups, logEvent)
 	}
 
 	a.applyModifier(run, modifiers.NewGroups(groups, modifiers.GroupsRemove), logModifier, logEvent)

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -12,7 +13,13 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
-func isValidURL(u string) bool { _, err := url.Parse(u); return err == nil }
+func isValidURL(u string) bool {
+	if utf8.RuneCountInString(u) > 2048 {
+		return false
+	}
+	_, err := url.Parse(u)
+	return err == nil
+}
 
 func init() {
 	registerType(TypeCallWebhook, func() flows.Action { return &CallWebhookAction{} })
@@ -76,13 +83,16 @@ func (a *CallWebhookAction) Validate() error {
 }
 
 // Execute runs this action
-func (a *CallWebhookAction) Execute(run flows.FlowRun, step flows.Step, logModifier flows.ModifierCallback, logEvent flows.EventCallback) error {
+func (a *CallWebhookAction) Execute(run flows.Run, step flows.Step, logModifier flows.ModifierCallback, logEvent flows.EventCallback) error {
 
 	// substitute any variables in our url
 	url, err := run.EvaluateTemplate(a.URL)
 	if err != nil {
 		logEvent(events.NewError(err))
 	}
+
+	url = strings.TrimSpace(url) // some servers don't like trailing spaces in HTTP requests
+
 	if url == "" {
 		logEvent(events.NewErrorf("webhook URL evaluated to empty string"))
 		return nil
@@ -108,7 +118,7 @@ func (a *CallWebhookAction) Execute(run flows.FlowRun, step flows.Step, logModif
 }
 
 // Execute runs this action
-func (a *CallWebhookAction) call(run flows.FlowRun, step flows.Step, url, method, body string, logEvent flows.EventCallback) error {
+func (a *CallWebhookAction) call(run flows.Run, step flows.Step, url, method, body string, logEvent flows.EventCallback) error {
 	// build our request
 	req, err := http.NewRequest(method, url, strings.NewReader(body))
 	if err != nil {

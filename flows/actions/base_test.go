@@ -3,8 +3,8 @@ package actions_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -55,7 +55,7 @@ var contactJSON = `{
 }`
 
 func TestActionTypes(t *testing.T) {
-	assetsJSON, err := ioutil.ReadFile("testdata/_assets.json")
+	assetsJSON, err := os.ReadFile("testdata/_assets.json")
 	require.NoError(t, err)
 
 	typeNames := make([]string, 0)
@@ -72,7 +72,7 @@ func TestActionTypes(t *testing.T) {
 
 func testActionType(t *testing.T, assetsJSON json.RawMessage, typeName string) {
 	testPath := fmt.Sprintf("testdata/%s.json", typeName)
-	testFile, err := ioutil.ReadFile(testPath)
+	testFile, err := os.ReadFile(testPath)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -312,7 +312,7 @@ func testActionType(t *testing.T, assetsJSON json.RawMessage, typeName string) {
 		actualJSON, err := jsonx.MarshalPretty(tests)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(testPath, actualJSON, 0666)
+		err = os.WriteFile(testPath, actualJSON, 0666)
 		require.NoError(t, err)
 	}
 }
@@ -439,8 +439,9 @@ func TestConstructors(t *testing.T) {
 			actions.NewOpenTicket(
 				actionUUID,
 				assets.NewTicketerReference(assets.TicketerUUID("0baee364-07a7-4c93-9778-9f55a35903bb"), "Support Tickets"),
-				"Need help",
+				assets.NewTopicReference("472a7a73-96cb-4736-b567-056d987cc5b4", "Weather"),
 				"Where are my cookies?",
+				assets.NewUserReference("bob@nyaruka.com", "Bob McTickets"),
 				"Ticket",
 			),
 			`{
@@ -450,8 +451,15 @@ func TestConstructors(t *testing.T) {
 					"uuid": "0baee364-07a7-4c93-9778-9f55a35903bb",
 					"name": "Support Tickets"
 				},
-				"subject": "Need help",
+				"topic": {
+					"uuid": "472a7a73-96cb-4736-b567-056d987cc5b4",
+					"name": "Weather"
+				},
 				"body": "Where are my cookies?",
+				"assignee": {
+					"email": "bob@nyaruka.com",
+					"name": "Bob McTickets"
+				},
 				"result_name": "Ticket"
 			}`,
 		},
@@ -709,6 +717,7 @@ func TestConstructors(t *testing.T) {
 					"name": "Testers"
 				}
 			],
+			"exclusions": {},
 			"create_contact": true
 		}`,
 		},
