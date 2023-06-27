@@ -10,7 +10,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ env.GITHUB_REF }}
-          fetch-depth: 0
 
       - name: "Create Version Tag"
         id: version_cfg
