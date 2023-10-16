@@ -16,8 +16,8 @@ require (
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.7.2
 	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
-	golang.org/x/net v0.7.0
-	golang.org/x/text v0.10.0
+	golang.org/x/net v0.17.0
+	golang.org/x/text v0.13.0
 	gopkg.in/go-playground/validator.v9 v9.31.0
 )
 
