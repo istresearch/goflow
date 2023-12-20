@@ -2,14 +2,22 @@ package webhooks
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
-	"net/http"
-
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/utils"
+	"io/ioutil"
+	"net/http"
 )
+
+const MAUTH_HEADER = "mauth_client_ca"
+const MAUTH_SERVER_CRT = "/etc/mauth/server/tls.crt"
+const MAUTH_SERVER_KEY = "/etc/mauth/server/tls.key"
+
+const MAUTH_CLIENT_BUNDLES_PATH = "/etc/mauth/clients/"
 
 type service struct {
 	httpClient     *http.Client
@@ -38,6 +46,35 @@ func NewService(httpClient *http.Client, httpRetries *httpx.RetryConfig, httpAcc
 }
 
 func (s *service) Call(session flows.Session, request *http.Request) (*flows.WebhookCall, error) {
+	httpClient := s.httpClient
+
+	if mauthClientCa := request.Header.Get(MAUTH_HEADER); mauthClientCa != "" {
+		request.Header.Del(MAUTH_HEADER)
+
+		// todo: check if client CA is a valid name (alphanumeric, lower/upper, with periods)
+
+		cert, err := tls.LoadX509KeyPair(MAUTH_SERVER_CRT, MAUTH_SERVER_KEY)
+		if err != nil {
+			return nil, err
+		}
+
+		caCert, err := ioutil.ReadFile(MAUTH_CLIENT_BUNDLES_PATH + mauthClientCa)
+		if err != nil {
+			return nil, err
+		}
+
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		httpClient = http.DefaultClient
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:      caCertPool,
+				Certificates: []tls.Certificate{cert},
+			},
+		}
+	}
+
 	// set any headers with defaults
 	for k, v := range s.defaultHeaders {
 		if request.Header.Get(k) == "" {
@@ -51,7 +88,7 @@ func (s *service) Call(session flows.Session, request *http.Request) (*flows.Web
 		request.Header.Del("Accept-Encoding")
 	}
 
-	trace, err := httpx.DoTrace(s.httpClient, request, s.httpRetries, s.httpAccess, s.maxBodyBytes)
+	trace, err := httpx.DoTrace(httpClient, request, s.httpRetries, s.httpAccess, s.maxBodyBytes)
 	if trace != nil {
 		call := &flows.WebhookCall{Trace: trace}
 
