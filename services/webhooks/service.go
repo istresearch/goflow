@@ -13,7 +13,7 @@ import (
 	"net/http"
 )
 
-const MAUTH_HEADER = "mauth_client_ca"
+const MAUTH_HEADER = "Mauth-Client-Ca"
 const MAUTH_SERVER_CRT = "/etc/mauth/server/tls.crt"
 const MAUTH_SERVER_KEY = "/etc/mauth/server/tls.key"
 
