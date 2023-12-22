@@ -5,12 +5,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/utils"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 )
 
 const MAUTH_HEADER = "Mauth-Client-Ca"
@@ -50,6 +52,13 @@ func (s *service) Call(session flows.Session, request *http.Request) (*flows.Web
 
 	if mauthClientCa := request.Header.Get(MAUTH_HEADER); mauthClientCa != "" {
 		request.Header.Del(MAUTH_HEADER)
+
+		var re, err = regexp.MatchString(`[a-zA-Z0-9_-]+\.ca-bundle`, mauthClientCa)
+		if err != nil {
+			return nil, err
+		} else if re == false {
+			return nil, fmt.Errorf("invalid mauth header provided")
+		}
 
 		// todo: check if client CA is a valid name (alphanumeric, lower/upper, with periods)
 
