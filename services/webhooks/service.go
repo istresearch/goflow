@@ -60,8 +60,6 @@ func (s *service) Call(session flows.Session, request *http.Request) (*flows.Web
 			return nil, fmt.Errorf("invalid mauth header provided")
 		}
 
-		// todo: check if client CA is a valid name (alphanumeric, lower/upper, with periods)
-
 		cert, err := tls.LoadX509KeyPair(MAUTH_SERVER_CRT, MAUTH_SERVER_KEY)
 		if err != nil {
 			return nil, err
