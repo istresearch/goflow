@@ -73,12 +73,19 @@ func (s *service) Call(session flows.Session, request *http.Request) (*flows.Web
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
 
-		httpClient = http.DefaultClient
-		httpClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:      caCertPool,
-				Certificates: []tls.Certificate{cert},
+		// Because defaultclient can be used across routines and be reused multiple times, we need to
+		// explicitly create one just for mTLS.
+		// Todo: Do we want to cache the clients based on the keypair used on a given connection?
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:      caCertPool,
+					Certificates: []tls.Certificate{cert},
+				},
 			},
+			CheckRedirect: s.httpClient.CheckRedirect,
+			Jar:           s.httpClient.Jar,
+			Timeout:       s.httpClient.Timeout,
 		}
 	}
 
