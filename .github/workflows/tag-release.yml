@@ -10,19 +10,22 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
       - name: "Create Version"
         id: version_cfg
         # note: Go lang requires tag format: v0.12.3-4
         # see: https://stackoverflow.com/questions/62140832/why-golang-packages-have-to-be-v0-or-v1-and-not-v2020
         run: |-
-          VER_BUILD=$(date +%-H%M)
-          VERSION_NUM="0.$(date +%y)$(date +%m).$(date +%-d)-${VER_BUILD:0:3}"
-          echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
+          VER_BUILD=$(date +%H%M)
+          # limit to only first 3 chars
+          VER_BUILD=${VER_BUILD:0:3}
+          # 'strict' semver segments cannot start with 0
+          VERSION_NUM="$(date +%y).$(date +%-m).$(date +%-d).${VER_BUILD#0}"
+          # recreate as INT, leaving 0's in place; creates a 'reasonable' 32-bit signed int.
+          VERSION_INT="$(date +%y)$(date +%m)$(date +%d)${VER_BUILD}"
+          echo "VERSION_INT=${VERSION_INT}" >> $GITHUB_OUTPUT
 
       - name: "Tag release"
-        uses: actions/create-release@latest
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
