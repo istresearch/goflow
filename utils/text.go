@@ -18,7 +18,7 @@ var wordTokenRegex = wordTokenRegexPattern()
 func wordTokenRegexPattern() *regexp.Regexp {
 	thePattern, ok := os.LookupEnv("WordTokenRegex")
 	if !ok || thePattern == "" {
-		thePattern = `[\pM\pL\pN_'-]+|\pS`
+		thePattern = `[\pM\pL\pN_']+|\pS`
 	}
 	return regexp.MustCompile(thePattern)
 }
