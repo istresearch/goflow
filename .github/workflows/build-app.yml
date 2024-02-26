@@ -36,7 +36,6 @@ jobs:
           set +e
           set -o pipefail
           go test ./... 2>&1 | tee test-results.txt
-          set -e
           S=$? #non-0 means error
           if [ $S -eq 0 ]; then
             R="Test(s) Passed: ${TEST_NAME}"
@@ -47,6 +46,7 @@ jobs:
             echo "::error::$R"
             R=":x: $R"
           fi
+          set -e
           echo "### ${R}" >> $GITHUB_STEP_SUMMARY
           echo '---' >> $GITHUB_STEP_SUMMARY
           echo '```shell' >> $GITHUB_STEP_SUMMARY
