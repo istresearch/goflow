@@ -1,6 +1,6 @@
 name: "Create version tag"
 
-on: [workflow_dispatch]
+on: [workflow_call]
 
 jobs:
   tag-branch:
@@ -8,8 +8,6 @@ jobs:
     environment: default
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.GITHUB_REF }}
 
       - name: "Create Version Tag"
         id: version_cfg
@@ -20,7 +18,7 @@ jobs:
           # limit to only first 3 chars
           VER_BUILD=${VER_BUILD:0:3}
           # 'strict' semver segments cannot start with 0
-          VERSION_NUM="$(date +%y).$(date +%-m).$(date +%-d).${VER_BUILD#0}"
+          VERSION_NUM="0.$(date +%y)$(date +%m).$(date +%-d).${VER_BUILD#0}"
           echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
           # recreate as INT, leaving 0's in place; creates a 'reasonable' 32-bit signed int.
           VERSION_INT="$(date +%y)$(date +%m)$(date +%d)${VER_BUILD}"
