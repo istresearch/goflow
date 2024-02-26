@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -12,7 +13,15 @@ import (
 var snakedChars = regexp.MustCompile(`[^\p{L}\d_]+`)
 
 // treats sequences of letters/numbers/_/' as tokens, and symbols as individual tokens
-var wordTokenRegex = regexp.MustCompile(`[\pM\pL\pN_']+|\pS`)
+var wordTokenRegex = wordTokenRegexPattern()
+
+func wordTokenRegexPattern() *regexp.Regexp {
+	thePattern, ok := os.LookupEnv("WordTokenRegex")
+	if !ok || thePattern == "" {
+		thePattern = `[\pM\pL\pN_'-]+|\pS`
+	}
+	return regexp.MustCompile(thePattern)
+}
 
 // Snakify turns the passed in string into a context reference. We replace all whitespace
 // characters with _ and replace any duplicate underscores
