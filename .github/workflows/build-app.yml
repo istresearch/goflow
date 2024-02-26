@@ -52,3 +52,6 @@ jobs:
           echo '```shell' >> $GITHUB_STEP_SUMMARY
           cat test-results.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: "tag branch"
+        uses: ./.github/workflows/util-tag-branch.yml
