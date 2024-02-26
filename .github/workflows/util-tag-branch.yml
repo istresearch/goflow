@@ -1,6 +1,6 @@
 name: "Create version tag"
 
-on: [workflow_dispatch]
+on: [workflow_call]
 
 jobs:
   tag-branch:
