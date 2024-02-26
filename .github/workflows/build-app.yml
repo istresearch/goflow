@@ -53,5 +53,6 @@ jobs:
           cat test-results.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: "tag branch"
-        uses: ./.github/workflows/util-tag-branch.yml
+  tag-branch:
+    uses: ./.github/workflows/util-tag-branch.yml
+    secrets: inherit
