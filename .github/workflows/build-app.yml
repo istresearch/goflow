@@ -9,7 +9,7 @@ on:
       - 'v*'
 
 jobs:
-  test-code:
+  test_code:
     runs-on: ubuntu-latest
     steps:
       - name: "Install dependencies"
@@ -33,6 +33,7 @@ jobs:
         env:
           TEST_NAME: "Unit Tests"
         run: |-
+          TESTS_OK=1
           set +e
           set -o pipefail
           go test ./... 2>&1 | tee test-results.txt
@@ -45,6 +46,7 @@ jobs:
             R="Test(s) '${TEST_NAME}' failed"
             echo "::error::$R"
             R=":x: $R"
+            TESTS_OK=0
           fi
           set -e
           echo "### ${R}" >> $GITHUB_STEP_SUMMARY
@@ -52,7 +54,12 @@ jobs:
           echo '```shell' >> $GITHUB_STEP_SUMMARY
           cat test-results.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${TESTS_OK}" == "0" ]]; then
+            exit 1
+          fi
 
   tag-branch:
+    needs: [test_code]
     uses: ./.github/workflows/util-tag-branch.yml
     secrets: inherit
