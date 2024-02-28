@@ -379,16 +379,32 @@ func (c *Contact) ResolveDestinations(all bool) []Destination {
 	return destinations
 }
 
-//<*((==<
-// ResolveURN resolves possible URN given channel to use
-func (c *Contact) ResolveURN(aChannelID assets.ChannelUUID) *ContactURN {
+// ResolveURNDestinations resolves possible URN/channel destinations //<*((==<
+func (c *Contact) ResolveURNDestinations(all bool, flowChannels map[assets.ChannelUUID]*assets.ChannelReference) []Destination {
+	var destinations []Destination
+	for _, u := range c.urns {
+		channel := c.assets.Channels().GetForURN(u, assets.ChannelRoleSend)
+		if channel != nil {
+			if _, found := flowChannels[channel.UUID()]; found {
+				destinations = append(destinations, Destination{URN: u, Channel: channel})
+				if !all {
+					break
+				}
+			}
+		}
+	}
+	return destinations
+}
+
+// ResolveURN resolves possible URN given channel to use //<*((==<
+func (c *Contact) ResolveURN(aChannelID assets.ChannelUUID) (*ContactURN, *Channel) {
 	for _, u := range c.urns {
 		channel := c.assets.Channels().Get(aChannelID)
 		if channel != nil && channel.SupportsScheme(u.URN().Scheme()) {
-			return u
+			return u, channel
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // PreferredURN gets the preferred URN for this contact, i.e. the URN we would use for sending

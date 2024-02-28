@@ -85,12 +85,23 @@ func (a *SendMsgAction) Execute(run flows.Run, step flows.Step, logModifier flow
 	evaluatedText, evaluatedAttachments, evaluatedQuickReplies := a.evaluateMessage(run, nil, a.Text, a.Attachments, a.QuickReplies, logEvent)
 
 	var destinations []flows.Destination
-	//<*((==<
 	flowChannels := run.Flow().Channels()
 	if len(flowChannels) > 0 {
-		destinations = []flows.Destination{}
-		// just add one "null" entry
-		destinations = append(destinations, flows.Destination{URN: nil, Channel: nil})
+		//<*((==<
+		destinations = run.Contact().ResolveURNDestinations(a.AllURNs, flowChannels)
+		if len(destinations) == 0 {
+			theRandomChannelUUID := run.Flow().ChannelUUIDs()[rand.Intn(len(flowChannels))]
+			//pick URN from contact based on channel we have
+			if theURN, theChannel := run.Contact().ResolveURN(theRandomChannelUUID); theURN != nil && theChannel != nil {
+				destinations = append(destinations, flows.Destination{URN: theURN, Channel: theChannel})
+			} else {
+				logEvent(events.NewErrorf("no matching URN for contact [%s] with channel [%s]",
+					run.Contact().UUID(),
+					theRandomChannelUUID,
+				))
+				return nil
+			}
+		}
 	} else {
 		destinations = run.Contact().ResolveDestinations(a.AllURNs)
 	}
@@ -102,18 +113,6 @@ func (a *SendMsgAction) Execute(run flows.Run, step flows.Step, logModifier flow
 		var channelRef *assets.ChannelReference
 		if dest.Channel != nil {
 			channelRef = assets.NewChannelReference(dest.Channel.UUID(), dest.Channel.Name())
-		} else if dest.URN == nil {
-			//<*((==<
-			channelRef = flowChannels[rand.Intn(len(flowChannels))]
-			//pick URN from contact based on channel we have
-			dest.URN = run.Contact().ResolveURN(channelRef.UUID)
-			if dest.URN == nil {
-				logEvent(events.NewErrorf("no matching URN for contact [%s] with channel [%s]",
-					run.Contact().UUID(),
-					channelRef.UUID,
-				))
-				return nil
-			}
 		}
 
 		var templating *flows.MsgTemplating

@@ -38,7 +38,8 @@ type flow struct {
 	expireAfterMinutes int
 	localization       flows.Localization
 	nodes              []flows.Node
-	channels []*assets.ChannelReference //<*((==<
+	channels   []assets.ChannelUUID                            //<*((==<
+	channelMap map[assets.ChannelUUID]*assets.ChannelReference //<*((==<
 
 	// optional properties not used by engine itself
 	ui json.RawMessage
@@ -51,7 +52,7 @@ type flow struct {
 }
 
 // NewFlow creates a new flow
-func NewFlow(uuid assets.FlowUUID, name string, language envs.Language, flowType flows.FlowType, revision int, expireAfterMinutes int, localization flows.Localization, nodes []flows.Node, ui json.RawMessage, a assets.Flow, channels []*assets.ChannelReference) (flows.Flow, error) {
+func NewFlow(uuid assets.FlowUUID, name string, language envs.Language, flowType flows.FlowType, revision int, expireAfterMinutes int, localization flows.Localization, nodes []flows.Node, ui json.RawMessage, a assets.Flow, channels []assets.ChannelUUID) (flows.Flow, error) {
 	f := &flow{
 		uuid:               uuid,
 		name:               name,
@@ -70,6 +71,11 @@ func NewFlow(uuid assets.FlowUUID, name string, language envs.Language, flowType
 
 	for _, node := range f.nodes {
 		f.nodeMap[node.UUID()] = node
+	}
+	//<*((==<
+	f.channelMap = make(map[assets.ChannelUUID]*assets.ChannelReference, len(f.channels))
+	for i := range f.channels {
+		f.channelMap[f.channels[i]] = assets.NewChannelReference(f.channels[i], string("Name Of: "+f.channels[i]))
 	}
 
 	if err := f.validate(); err != nil {
@@ -90,7 +96,8 @@ func (f *flow) Nodes() []flows.Node                    { return f.nodes }
 func (f *flow) Localization() flows.Localization       { return f.localization }
 func (f *flow) UI() json.RawMessage                    { return f.ui }
 func (f *flow) GetNode(uuid flows.NodeUUID) flows.Node { return f.nodeMap[uuid] }
-func (f *flow) Channels() []*assets.ChannelReference { return f.channels } //<*((==<
+func (f *flow) ChannelUUIDs() []assets.ChannelUUID                        { return f.channels }   //<*((==<
+func (f *flow) Channels() map[assets.ChannelUUID]*assets.ChannelReference { return f.channelMap } //<*((==<
 
 func (f *flow) validate() error {
 	// track UUIDs used by nodes and actions to ensure that they are unique
@@ -360,13 +367,7 @@ func readFlow(data json.RawMessage, mc *migrations.Config, a assets.Flow) (flows
 		e.Localization = make(localization)
 	}
 
-	//<*((==<
-	channels := make([]*assets.ChannelReference, len(e.ChannelUUIDs))
-	for i := range e.ChannelUUIDs {
-		channels[i] = assets.NewChannelReference(e.ChannelUUIDs[i], string("Name Of: "+e.ChannelUUIDs[i]))
-	}
-
-	return NewFlow(e.UUID, e.Name, e.Language, e.Type, e.Revision, e.ExpireAfterMinutes, e.Localization, nodes, e.UI, a, channels)
+	return NewFlow(e.UUID, e.Name, e.Language, e.Type, e.Revision, e.ExpireAfterMinutes, e.Localization, nodes, e.UI, a, e.ChannelUUIDs)
 }
 
 // MarshalJSON marshals this flow into JSON
