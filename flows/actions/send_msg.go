@@ -7,6 +7,7 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
+	"math/rand"
 )
 
 func init() {
@@ -83,7 +84,16 @@ func (a *SendMsgAction) Execute(run flows.Run, step flows.Step, logModifier flow
 
 	evaluatedText, evaluatedAttachments, evaluatedQuickReplies := a.evaluateMessage(run, nil, a.Text, a.Attachments, a.QuickReplies, logEvent)
 
-	destinations := run.Contact().ResolveDestinations(a.AllURNs)
+	var destinations []flows.Destination
+	//<*((==<
+	flowChannels := run.Flow().Channels()
+	if len(flowChannels) > 0 {
+		destinations = []flows.Destination{}
+		// just add one "null" entry
+		destinations = append(destinations, flows.Destination{URN: nil, Channel: nil})
+	} else {
+		destinations = run.Contact().ResolveDestinations(a.AllURNs)
+	}
 
 	sa := run.Session().Assets()
 
@@ -92,6 +102,18 @@ func (a *SendMsgAction) Execute(run flows.Run, step flows.Step, logModifier flow
 		var channelRef *assets.ChannelReference
 		if dest.Channel != nil {
 			channelRef = assets.NewChannelReference(dest.Channel.UUID(), dest.Channel.Name())
+		} else if dest.URN == nil {
+			//<*((==<
+			channelRef = flowChannels[rand.Intn(len(flowChannels))]
+			//pick URN from contact based on channel we have
+			dest.URN = run.Contact().ResolveURN(channelRef.UUID)
+			if dest.URN == nil {
+				logEvent(events.NewErrorf("no matching URN for contact [%s] with channel [%s]",
+					run.Contact().UUID(),
+					channelRef.UUID,
+				))
+				return nil
+			}
 		}
 
 		var templating *flows.MsgTemplating

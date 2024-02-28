@@ -136,6 +136,7 @@ type Flow interface {
 	UI() json.RawMessage
 	Nodes() []Node
 	GetNode(uuid NodeUUID) Node
+	Channels() []*assets.ChannelReference //<*((==<
 
 	Asset() assets.Flow
 	Reference() *assets.FlowReference

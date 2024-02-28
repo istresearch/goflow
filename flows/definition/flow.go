@@ -38,6 +38,7 @@ type flow struct {
 	expireAfterMinutes int
 	localization       flows.Localization
 	nodes              []flows.Node
+	channels []*assets.ChannelReference //<*((==<
 
 	// optional properties not used by engine itself
 	ui json.RawMessage
@@ -50,7 +51,7 @@ type flow struct {
 }
 
 // NewFlow creates a new flow
-func NewFlow(uuid assets.FlowUUID, name string, language envs.Language, flowType flows.FlowType, revision int, expireAfterMinutes int, localization flows.Localization, nodes []flows.Node, ui json.RawMessage, a assets.Flow) (flows.Flow, error) {
+func NewFlow(uuid assets.FlowUUID, name string, language envs.Language, flowType flows.FlowType, revision int, expireAfterMinutes int, localization flows.Localization, nodes []flows.Node, ui json.RawMessage, a assets.Flow, channels []*assets.ChannelReference) (flows.Flow, error) {
 	f := &flow{
 		uuid:               uuid,
 		name:               name,
@@ -64,6 +65,7 @@ func NewFlow(uuid assets.FlowUUID, name string, language envs.Language, flowType
 		nodeMap:            make(map[flows.NodeUUID]flows.Node, len(nodes)),
 		ui:                 ui,
 		asset:              a,
+		channels: channels,
 	}
 
 	for _, node := range f.nodes {
@@ -88,6 +90,7 @@ func (f *flow) Nodes() []flows.Node                    { return f.nodes }
 func (f *flow) Localization() flows.Localization       { return f.localization }
 func (f *flow) UI() json.RawMessage                    { return f.ui }
 func (f *flow) GetNode(uuid flows.NodeUUID) flows.Node { return f.nodeMap[uuid] }
+func (f *flow) Channels() []*assets.ChannelReference { return f.channels } //<*((==<
 
 func (f *flow) validate() error {
 	// track UUIDs used by nodes and actions to ensure that they are unique
@@ -315,6 +318,8 @@ type flowEnvelope struct {
 	Localization       localization    `json:"localization"`
 	Nodes              []*node         `json:"nodes"`
 	UI                 json.RawMessage `json:"_ui,omitempty"`
+	//<*((==<
+	ChannelUUIDs []assets.ChannelUUID `json:"channels,omitempty"`
 }
 
 // ReadFlow reads a flow definition from the passed in byte array, migrating it to the spec version of the engine if necessary
@@ -355,7 +360,13 @@ func readFlow(data json.RawMessage, mc *migrations.Config, a assets.Flow) (flows
 		e.Localization = make(localization)
 	}
 
-	return NewFlow(e.UUID, e.Name, e.Language, e.Type, e.Revision, e.ExpireAfterMinutes, e.Localization, nodes, e.UI, a)
+	//<*((==<
+	channels := make([]*assets.ChannelReference, len(e.ChannelUUIDs))
+	for i := range e.ChannelUUIDs {
+		channels[i] = assets.NewChannelReference(e.ChannelUUIDs[i], string("Name Of: "+e.ChannelUUIDs[i]))
+	}
+
+	return NewFlow(e.UUID, e.Name, e.Language, e.Type, e.Revision, e.ExpireAfterMinutes, e.Localization, nodes, e.UI, a, channels)
 }
 
 // MarshalJSON marshals this flow into JSON

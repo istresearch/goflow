@@ -273,6 +273,7 @@ func TestNewFlow(t *testing.T) {
 		},
 		nil, // no UI
 		nil, // no asset
+		nil,
 	)
 	require.NoError(t, err)
 
