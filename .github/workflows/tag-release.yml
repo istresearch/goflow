@@ -26,7 +26,7 @@ jobs:
           echo "VERSION_INT=${VERSION_INT}" >> $GITHUB_OUTPUT
 
       - name: "Tag release"
-        uses: actions/create-release@v1
+        uses: actions/create-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
